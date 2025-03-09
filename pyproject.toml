@@ -1,0 +1,73 @@
+[tool.poetry]
+name = "controls"
+version = "0.1.0"
+description = ""
+authors = ["Tsmorz <tonysmoragiewicz@gmail.com>"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.12"
+numpy = "^2.2.3"
+scipy = "^1.15.2"
+pytest = "^8.3.5"
+pytest-cov = "^6.0.0"
+loguru = "^0.7.3"
+pre-commit = "^4.1.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+# Set the maximum allowed line length (PEP 8 default is 88)
+line-length = 88
+
+# Enable specific linting rules
+lint.select = [
+    "E",    # pycodestyle (style errors)
+    "F",    # Pyflakes (logical errors)
+    "W",    # Warnings
+    "C90",  # mccabe (complexity checks)
+    "I",    # isort (import sorting)
+    "N",    # pep8-naming (naming conventions)
+    "D",    # pydocstyle (docstring conventions)
+    "UP",   # pyupgrade (Python syntax modernization)
+    "B",    # flake8-bugbear (common pitfalls and performance issues)
+    "S",    # flake8-bandit (security issues)
+    "YTT",  # flake8-2020 (Python 2 compatibility issues)
+    "Q",    # flake8-quotes (quote consistency)
+    "PL",   # pylint (general best practices)
+    "RUF",  # Ruff-specific rules
+]
+
+# Exclude some noisy or unnecessary rules
+lint.ignore = [
+    "D203",  # 1 blank line before a class (conflicts with D211)
+    "D213",  # Multi-line docstring should start on the first line (conflicts with D212)
+    "E501",  # Line length (handled by autoformatter instead)
+    "N803",
+    "D102",
+    "D100",
+    "N806",
+    "PLR0913"
+]
+
+# Automatically fix issues where possible
+fix = true
+
+# Sort imports automatically
+[tool.lint.isort]
+known-first-party = ["controls"]  # Replace with your project name
+combine-as-imports = true
+
+# Enforce docstring styles
+[tool.lint.pydocstyle]
+convention = "google"  # Options: "google", "numpy", "pep257"
+
+# Autoformatting options
+[tool.ruff.format]
+quote-style = "double"  # Ensure consistent use of double quotes
+indent-style = "space"  # Use spaces instead of tabs
+line-ending = "lf"      # Use LF for line endings (Unix standard)
