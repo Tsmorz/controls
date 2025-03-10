@@ -42,6 +42,7 @@ lint.select = [
     "Q",    # flake8-quotes (quote consistency)
     "PL",   # pylint (general best practices)
     "RUF",  # Ruff-specific rules
+    "T20",
 ]
 
 # Exclude some noisy or unnecessary rules
