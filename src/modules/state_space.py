@@ -4,7 +4,7 @@ from typing import Optional
 
 import numpy as np
 
-from src.modules.math_utils import matrix_exp
+from src.modules.math_utils import matrix_exponential
 
 
 class StateSpace:
@@ -38,7 +38,7 @@ class StateSpace:
 
 def continuous_to_discrete(state_space: StateSpace, dt: float) -> StateSpace:
     """Convert a continuous state space to discrete state space."""
-    A = matrix_exp(state_space.A, dt)
+    A = matrix_exponential(state_space.A, dt)
     B = np.linalg.inv(state_space.A) @ (A - np.eye(A.shape[0])) @ state_space.B
 
     state_space.A = A
