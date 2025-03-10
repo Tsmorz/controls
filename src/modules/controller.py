@@ -5,7 +5,7 @@ from typing import Optional
 import numpy as np
 from loguru import logger
 
-from config.definitions import NUM_STEPS
+from config.definitions import DEFAULT_NUM_STEPS
 
 
 class LQRController:
@@ -17,7 +17,7 @@ class LQRController:
         B: np.ndarray,
         Q: Optional[np.ndarray] = None,
         R: Optional[np.ndarray] = None,
-        num_steps: int = NUM_STEPS,
+        num_steps: int = DEFAULT_NUM_STEPS,
     ):
         """Initialize the LQR controller.
 

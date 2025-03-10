@@ -7,7 +7,7 @@ import numpy as np
 from loguru import logger
 from state_space import StateSpace
 
-from config.definitions import DEFAULT_VARIANCE, NUM_STEPS
+from config.definitions import DEFAULT_NUM_STEPS, DEFAULT_VARIANCE
 
 
 class KalmanFilter:
@@ -93,7 +93,7 @@ if __name__ == "__main__":  # pragma: no cover
     )
 
     # Generate random control inputs and measurements and update the Kalman filter
-    for _ in range(NUM_STEPS):
+    for _ in range(DEFAULT_NUM_STEPS):
         m = np.random.rand(2, 1)
         kf.predict(u=np.array([[1]]))
         kf.update(z=m)

@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.signal import cont2discrete
 
-from config.definitions import DEFAULT_DT, FIG_SIZE
+from config.definitions import DEFAULT_DT, FIG_SIZE, LEGEND_LOC
 from src.data_classes.state_space_data import StateSpaceData
 
 
@@ -86,12 +86,28 @@ class StateSpace:
         fig, axs = plt.subplots(num_states, 1, sharex=True, figsize=FIG_SIZE)
         plt.suptitle("Step Response")
 
+        ax = axs[0]
+        for state in range(num_states):
+            ax.step(
+                history.time,
+                [arr[state] for arr in history.state],
+                label=f"$x_{state}$",
+            )
+            ax.set_ylabel("State")
+
+        ax = axs[1]
+        for state in range(num_states):
+            data = [arr[state] for arr in history.state]
+            data /= np.max(np.abs(data))
+            ax.step(history.time, data, label=f"$x_{state}$")
+            ax.set_ylabel("Normalized State")
+
         for state in range(num_states):
             ax = axs[state]
-            ax.step(history.time, [arr[state] for arr in history.state])
             ax.set_xlabel("Time (s)")
-            ax.set_ylabel(f"State - $x_{state}$")
             ax.grid(True)
+            ax.legend(loc=LEGEND_LOC)
+
         plt.show()
         plt.close()
 
