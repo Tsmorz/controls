@@ -7,7 +7,7 @@ import numpy as np
 
 
 @dataclass
-class StateHistory:
+class StateSpaceData:
     """A state history object to store history of state information."""
 
     time: np.ndarray

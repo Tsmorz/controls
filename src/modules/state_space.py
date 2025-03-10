@@ -7,7 +7,7 @@ import numpy as np
 from scipy.signal import cont2discrete
 
 from config.definitions import DEFAULT_DT, FIG_SIZE
-from src.data_classes.state_space_data import StateHistory
+from src.data_classes.state_space_data import StateSpaceData
 
 
 class StateSpace:
@@ -50,9 +50,7 @@ class StateSpace:
 
         return self.A @ x + self.B @ u
 
-    def step_response(
-        self, dt: float = 1.0, plot_response: bool = True
-    ) -> StateHistory:
+    def step_response(self, dt: float, plot_response: bool = True) -> StateSpaceData:
         """Compute the step response of the state-space model.
 
         :param dt: Time step size
@@ -67,7 +65,7 @@ class StateSpace:
         control_input = num_steps * [np.zeros((self.B.shape[1], 1))]
         control_input[0] = np.ones((self.B.shape[1], 1))
 
-        state_history = StateHistory(control=control_input, time=time, state=[x])
+        state_history = StateSpaceData(control=control_input, time=time, state=[x])
         for ii, _t in enumerate(time[:-1]):
             u = control_input[ii]
             x = self.step(x=x, u=u)
@@ -78,7 +76,7 @@ class StateSpace:
 
         return state_history
 
-    def plot_history(self, history: StateHistory) -> None:
+    def plot_history(self, history: StateSpaceData) -> None:
         """Plot the history of state space model.
 
         :param history: State history object
