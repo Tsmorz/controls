@@ -4,7 +4,7 @@ from typing import Optional
 
 import numpy as np
 
-DEFAULT_DT = 1.0
+from src.modules.math_utils import matrix_exp
 
 
 class StateSpace:
@@ -35,26 +35,13 @@ class StateSpace:
             D = np.zeros((C.shape[0], B.shape[1]))
         self.D = D
 
-        self.dt = DEFAULT_DT  # Default time step
 
-    def continuous_to_discrete(self, delta_time: float = DEFAULT_DT) -> None:
-        self.dt = delta_time
+def continuous_to_discrete(state_space: StateSpace, dt: float) -> StateSpace:
+    """Convert a continuous state space to discrete state space."""
+    A = matrix_exp(state_space.A, dt)
+    B = np.linalg.inv(state_space.A) @ (A - np.eye(A.shape[0])) @ state_space.B
 
-        A = matrix_exp(self.A, self.dt)
-        B = np.linalg.inv(self.A) @ (A - np.eye(2)) @ self.B
+    state_space.A = A
+    state_space.B = B
 
-        self.A = A
-        self.B = B
-
-
-def matrix_exp(matrix: np.ndarray, dt: float) -> np.ndarray:
-    """Find the matrix exponential.
-
-    :param matrix: Input matrix
-    :param dt: Time step
-    :return: Matrix exponential
-    """
-    d, U = np.linalg.eig(matrix)
-    D = np.exp(d * dt) * np.eye(np.shape(matrix)[0])
-    A = np.real(U @ D @ np.linalg.inv(U))
-    return A
+    return state_space
