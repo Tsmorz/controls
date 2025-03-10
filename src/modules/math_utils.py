@@ -17,10 +17,12 @@ def matrix_exponential(matrix: np.ndarray, t: float = 1.0) -> np.ndarray:
 
     mat = Matrix(matrix)
     if mat.is_diagonalizable():
+        print("there")
         eig_val, eig_vec = np.linalg.eig(matrix)
         diagonal = np.diag(np.exp(eig_val * t))
         matrix_exp = eig_vec @ diagonal @ np.linalg.inv(eig_vec)
     else:
+        print("here")
         P, J = mat.jordan_form()
         P, J = np.array(P).astype(np.float64), np.array(J).astype(np.float64)
         J = scipy.linalg.expm(t * J)

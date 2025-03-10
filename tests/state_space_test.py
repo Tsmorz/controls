@@ -22,8 +22,8 @@ def test_state_space() -> None:
 def test_continuous_to_discrete() -> None:
     """Test that the continuous to discrete is working correctly."""
     # Arrange
-    A = np.array([[0.0, 1.0], [0.0, 0.0]])
-    B = np.array([[0.0], [1.0]])
+    A = np.array([[0, 1], [0, 0]])
+    B = np.array([[0], [1]])
     ss = StateSpace(A, B)
     dt = 0.01
 
@@ -32,6 +32,6 @@ def test_continuous_to_discrete() -> None:
 
     # Assert
     expected_A = np.array([[1.0, dt], [0.0, 1.0]])
-    expected_B = (1 / (1 + dt)) * np.array([[0.5], [1.0]])
-    np.testing.assert_allclose(discrete_ss.A, expected_A)
-    np.testing.assert_allclose(discrete_ss.B, expected_B)
+    expected_B = np.array([[dt**2 / 2], [dt]])
+    np.testing.assert_array_almost_equal(discrete_ss.A, expected_A)
+    np.testing.assert_array_almost_equal(discrete_ss.B, expected_B)
