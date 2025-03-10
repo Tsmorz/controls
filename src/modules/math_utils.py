@@ -2,6 +2,7 @@
 
 import numpy as np
 import scipy
+from loguru import logger
 from sympy import Matrix
 
 
@@ -13,16 +14,17 @@ def matrix_exponential(matrix: np.ndarray, t: float = 1.0) -> np.ndarray:
     :return: The matrix exponential of the given matrix.
     """
     if np.shape(matrix)[0] != np.shape(matrix)[1]:
-        raise ValueError("Input matrix must be square.")
+        dim = matrix.shape
+        msg = f"Input matrix must be square. Matrix has dimensions: {dim[0]}x{dim[1]}."
+        logger.error(msg)
+        raise ValueError(msg)
 
     mat = Matrix(matrix)
     if mat.is_diagonalizable():
-        print("there")
         eig_val, eig_vec = np.linalg.eig(matrix)
         diagonal = np.diag(np.exp(eig_val * t))
         matrix_exp = eig_vec @ diagonal @ np.linalg.inv(eig_vec)
     else:
-        print("here")
         P, J = mat.jordan_form()
         P, J = np.array(P).astype(np.float64), np.array(J).astype(np.float64)
         J = scipy.linalg.expm(t * J)
