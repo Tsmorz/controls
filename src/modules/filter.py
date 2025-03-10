@@ -78,22 +78,22 @@ if __name__ == "__main__":  # pragma: no cover
     dt = 0.05
     ss = mass_spring_damper_model(discretization_dt=dt)
 
-    x0 = np.array([[0.0], [0.0]])
-    cov0 = np.eye(2)
     kf = KalmanFilter(
         state_space=ss,
         Q=DEFAULT_VARIANCE * np.eye(2),
         R=DEFAULT_VARIANCE * np.eye(1),
-        initial_state=x0,
-        initial_covariance=cov0,
+        initial_state=np.array([[0.0], [0.0]]),
+        initial_covariance=np.eye(2),
     )
 
     # Generate random control inputs and measurements and update the Kalman filter
     time = np.arange(0, 10, dt)
     control = len(time) * [np.array([[1]])]
-    results = StateSpaceData(state=[x0], covariance=[cov0], time=time, control=control)
+    results = StateSpaceData(
+        state=[kf.x], covariance=[kf.cov], time=time, control=control
+    )
     np.random.seed(0)  # For reproducibility
-    x_real = x0
+    x_real = kf.x
     for ii, _t in enumerate(time[:-1]):
         x_real = ss.step(x=x_real, u=control[ii])
 
