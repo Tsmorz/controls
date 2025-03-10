@@ -46,29 +46,28 @@ class StateSpace:
             D = np.zeros((C.shape[0], B.shape[1]))
         self.D = D
 
-    def step(self, x: np.ndarray, u: Optional[np.ndarray] = None) -> np.ndarray:
+    def step(self, x: np.ndarray, u: np.ndarray) -> np.ndarray:
         """Step the state-space model by one step.
 
         :param x: Current state
         :param u: Control input
         :return: Next state
         """
-        if u is None:
-            u = np.zeros((self.B.shape[1], 1))
-
         return self.A @ x + self.B @ u
 
-    def step_response(self, dt: float, plot_response: bool = True) -> StateSpaceData:
+    def step_response(
+        self, delta_t: float, plot_response: bool = True
+    ) -> StateSpaceData:
         """Compute the step response of the state-space model.
 
-        :param dt: Time step size
+        :param delta_t: Time step size
         :param plot_response: Whether to plot the step response
         :return: State history object
         """
         # Generate control input over 10 steps
         num_states = self.A.shape[0]
         num_inputs = self.B.shape[1]
-        time = np.arange(0, 10, dt)
+        time = np.arange(0, 10, delta_t)
 
         control_input = len(time) * [np.ones((num_inputs, 1))]
 
@@ -83,17 +82,19 @@ class StateSpace:
 
         return state_history
 
-    def impulse_response(self, dt: float, plot_response: bool = True) -> StateSpaceData:
+    def impulse_response(
+        self, delta_t: float, plot_response: bool = True
+    ) -> StateSpaceData:
         """Compute the step response of the state-space model.
 
-        :param dt: Time step size
+        :param delta_t: Time step size
         :param plot_response: Whether to plot the step response
         :return: State history object
         """
         # Generate control input over 10 steps
         num_states = self.A.shape[0]
         num_inputs = self.B.shape[1]
-        time = np.arange(0, 10, dt)
+        time = np.arange(0, 10, delta_t)
 
         control_input = len(time) * [np.zeros((num_inputs, 1))]
         control_input[0] = np.ones((num_inputs, 1))
@@ -119,13 +120,16 @@ class StateSpace:
         :param control_input: Control input array
         """
         state_history = StateSpaceData(control=control_input, time=time, state=[x0])
+        x = x0
         for ii, _t in enumerate(time[:-1]):
             u = control_input[ii]
-            x = self.step(x=state_history.state[-1], u=u)
+            x = self.step(x=x, u=u)
             state_history.state.append(x)
         return state_history
 
-    def plot_history(self, history: StateSpaceData, title: str) -> None:
+    def plot_history(
+        self, history: StateSpaceData, title: str = "State Space History"
+    ) -> None:
         """Plot the history of state space model.
 
         :param history: State history object
@@ -154,16 +158,16 @@ class StateSpace:
 
 
 def continuous_to_discrete(
-    state_space: StateSpace, dt: float = DEFAULT_DT
+    state_space: StateSpace, discretization_dt: float = DEFAULT_DT
 ) -> StateSpace:
     """Convert a continuous state space to discrete state space.
 
     :param state_space: Continuous state-space model
-    :param dt: Desired discrete time step size
+    :param discretization_dt: Desired discrete time step size
     :return: Discrete state-space model
     """
     system = (state_space.A, state_space.B, state_space.C, state_space.D)
-    system_disc = cont2discrete(system, dt=dt, method="zoh")
+    system_disc = cont2discrete(system, dt=discretization_dt, method="zoh")
 
     state_space.A = system_disc[0]
     state_space.B = system_disc[1]
@@ -173,18 +177,33 @@ def continuous_to_discrete(
     return state_space
 
 
-if __name__ == "__main__":  # pragma: no cover
-    """Run the main program with this function."""
-    spring_const = 10.0
-    mass = 0.5
-    damping = 0.8
+def mass_spring_damper_model(
+    mass: float = 0.5,
+    spring_const: float = 10.0,
+    damping: float = 0.8,
+    discretization_dt: Optional[float] = None,
+) -> StateSpace:
+    """Calculate a simple mass spring damper model.
 
-    ss = StateSpace(
+    :param mass: Mass of the system
+    :param spring_const: Spring constant
+    :param damping: Damping coefficient
+    :param discretization_dt: Desired discrete time step size
+    :return: state-space model
+    """
+    model = StateSpace(
         A=np.array([[0.0, 1.0], [-spring_const / mass, -damping / mass]]),
         B=np.array([[0.0], [1.0 / mass]]),
     )
 
-    descritization_dt = 0.05
-    ss = continuous_to_discrete(state_space=ss, dt=descritization_dt)
-    ss.step_response(dt=descritization_dt, plot_response=True)
-    ss.impulse_response(dt=descritization_dt, plot_response=True)
+    if discretization_dt is not None:
+        model = continuous_to_discrete(model, discretization_dt=discretization_dt)
+    return model
+
+
+if __name__ == "__main__":  # pragma: no cover
+    """Run the main program with this function."""
+    dt = 0.05
+    ss = mass_spring_damper_model(discretization_dt=dt)
+    ss.step_response(delta_t=dt, plot_response=True)
+    ss.impulse_response(delta_t=dt, plot_response=True)
