@@ -1,5 +1,6 @@
 import numpy as np
 
+from config.definitions import DEFAULT_DT
 from src.modules.state_space import StateSpace, continuous_to_discrete
 
 
@@ -25,7 +26,7 @@ def test_continuous_to_discrete() -> None:
     A = np.array([[0, 1], [0, 0]])
     B = np.array([[0], [1]])
     ss = StateSpace(A, B)
-    dt = 0.01
+    dt = DEFAULT_DT
 
     # Act
     discrete_ss = continuous_to_discrete(ss, dt)

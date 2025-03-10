@@ -3,8 +3,9 @@
 from typing import Optional
 
 import numpy as np
-from definitions import NUM_STEPS
 from loguru import logger
+
+from config.definitions import NUM_STEPS
 
 
 class LQRController:
