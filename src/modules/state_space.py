@@ -4,6 +4,7 @@ from typing import Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
+from loguru import logger
 from scipy.signal import cont2discrete
 
 from config.definitions import DEFAULT_DT, FIG_SIZE, LEGEND_LOC
@@ -27,6 +28,13 @@ class StateSpace:
         :param C: Observation matrix
         :param D: Direct transmission matrix
         """
+        if A.shape[0] != B.shape[0]:
+            msg = (
+                f"A and B matrices must have the same number of rows. "
+                f"{A.shape[0]} != {B.shape[0]}"
+            )
+            logger.error(msg)
+            raise ValueError(msg)
         self.A = A
         self.B = B
 
@@ -57,53 +65,86 @@ class StateSpace:
         :param plot_response: Whether to plot the step response
         :return: State history object
         """
-        x = np.zeros((self.A.shape[0], 1))
-
         # Generate control input over 10 steps
+        num_states = self.A.shape[0]
+        num_inputs = self.B.shape[1]
         time = np.arange(0, 10, dt)
-        num_steps = len(time)
-        control_input = num_steps * [np.zeros((self.B.shape[1], 1))]
-        control_input[0] = np.ones((self.B.shape[1], 1))
 
-        state_history = StateSpaceData(control=control_input, time=time, state=[x])
-        for ii, _t in enumerate(time[:-1]):
-            u = control_input[ii]
-            x = self.step(x=x, u=u)
-            state_history.state.append(x)
+        control_input = len(time) * [np.ones((num_inputs, 1))]
+
+        state_history = self.solve_trajectory(
+            time=time,
+            x0=np.zeros((num_states, 1)),
+            control_input=control_input,
+        )
 
         if plot_response:
-            self.plot_history(history=state_history)
+            self.plot_history(history=state_history, title="Step Response")
 
         return state_history
 
-    def plot_history(self, history: StateSpaceData) -> None:
+    def impulse_response(self, dt: float, plot_response: bool = True) -> StateSpaceData:
+        """Compute the step response of the state-space model.
+
+        :param dt: Time step size
+        :param plot_response: Whether to plot the step response
+        :return: State history object
+        """
+        # Generate control input over 10 steps
+        num_states = self.A.shape[0]
+        num_inputs = self.B.shape[1]
+        time = np.arange(0, 10, dt)
+
+        control_input = len(time) * [np.zeros((num_inputs, 1))]
+        control_input[0] = np.ones((num_inputs, 1))
+
+        state_history = self.solve_trajectory(
+            time=time,
+            x0=np.zeros((num_states, 1)),
+            control_input=control_input,
+        )
+
+        if plot_response:
+            self.plot_history(history=state_history, title="Impulse Response")
+
+        return state_history
+
+    def solve_trajectory(
+        self, time: np.ndarray, x0: np.ndarray, control_input: list[np.ndarray]
+    ) -> StateSpaceData:
+        """Solve the state-space model for given time, control input, and initial state.
+
+        :param time: Time array
+        :param x0: Initial state
+        :param control_input: Control input array
+        """
+        state_history = StateSpaceData(control=control_input, time=time, state=[x0])
+        for ii, _t in enumerate(time[:-1]):
+            u = control_input[ii]
+            x = self.step(x=state_history.state[-1], u=u)
+            state_history.state.append(x)
+        return state_history
+
+    def plot_history(self, history: StateSpaceData, title: str) -> None:
         """Plot the history of state space model.
 
         :param history: State history object
+        :param title: Plot title
         :return: None
         """
         num_states = self.A.shape[0]
-        fig, axs = plt.subplots(num_states, 1, sharex=True, figsize=FIG_SIZE)
-        plt.suptitle("Step Response")
+        fig, axs = plt.subplots(2, 1, sharex=True, figsize=FIG_SIZE)
+        plt.suptitle(title)
 
-        ax = axs[0]
-        for state in range(num_states):
-            ax.step(
-                history.time,
-                [arr[state] for arr in history.state],
-                label=f"$x_{state}$",
-            )
-            ax.set_ylabel("State")
+        for ii, ax in enumerate(axs):
+            for state in range(num_states):
+                data = [arr[state] for arr in history.state]
+                if ii == 1:
+                    data /= np.amax(np.abs(data))
+                ax.step(history.time, data, label=f"$x_{state}$")
+                ax.set_ylabel("State" if ii == 0 else "Normalized State")
 
-        ax = axs[1]
-        for state in range(num_states):
-            data = [arr[state] for arr in history.state]
-            data /= np.max(np.abs(data))
-            ax.step(history.time, data, label=f"$x_{state}$")
-            ax.set_ylabel("Normalized State")
-
-        for state in range(num_states):
-            ax = axs[state]
+        for ax in axs:
             ax.set_xlabel("Time (s)")
             ax.grid(True)
             ax.legend(loc=LEGEND_LOC)
@@ -146,3 +187,4 @@ if __name__ == "__main__":  # pragma: no cover
     descritization_dt = 0.05
     ss = continuous_to_discrete(state_space=ss, dt=descritization_dt)
     ss.step_response(dt=descritization_dt, plot_response=True)
+    ss.impulse_response(dt=descritization_dt, plot_response=True)
