@@ -142,10 +142,27 @@ class StateSpace:
 
         for ii, ax in enumerate(axs):
             for state in range(num_states):
-                data = [arr[state] for arr in history.state]
+                data = np.array([arr[state] for arr in history.state])
+                data = data.flatten()
+
+                sigma = np.array([arr[state, state] for arr in history.covariance])
+                sigma = sigma.flatten()
+
                 if ii == 1:
                     data /= np.amax(np.abs(data))
-                ax.step(history.time, data, label=f"$x_{state}$")
+
+                p = ax.step(history.time, data, label=f"$x_{state}$")
+                c = p[0].get_color()
+                lower = data - 5 * sigma
+                upper = data + 5 * sigma
+                ax.fill_between(
+                    history.time,
+                    lower,
+                    upper,
+                    color=c,
+                    alpha=0.5,
+                    label=f"$x_{state} sigma$",
+                )
                 ax.set_ylabel("State" if ii == 0 else "Normalized State")
             for u in range(history.control[0].shape[1]):
                 control = [arr[u] for arr in history.control]
