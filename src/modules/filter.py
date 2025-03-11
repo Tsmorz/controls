@@ -4,13 +4,13 @@ import argparse
 from typing import Optional
 
 import numpy as np
-from state_space import (
+
+from config.definitions import DEFAULT_VARIANCE
+from src.modules.state_space import (
     StateSpace,
     StateSpaceData,
     mass_spring_damper_model,
 )
-
-from config.definitions import DEFAULT_VARIANCE
 
 
 class KalmanFilter:
@@ -47,6 +47,8 @@ class KalmanFilter:
 
         :param u: Control input
         """
+        if u is None:
+            u = np.zeros((self.B.shape[1], 1))
         self.x = self.state_space.step(x=self.x, u=u)
         self.cov = self.A @ self.cov @ self.A.T + self.cov_process
 
