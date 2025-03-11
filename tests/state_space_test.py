@@ -1,6 +1,7 @@
 import numpy as np
 
 from config.definitions import DEFAULT_DT
+from src.data_classes.state_space_data import StateSpaceData
 from src.modules.state_space import StateSpace, continuous_to_discrete
 
 
@@ -36,3 +37,18 @@ def test_continuous_to_discrete() -> None:
     expected_B = np.array([[dt**2 / 2], [dt]])
     np.testing.assert_array_almost_equal(discrete_ss.A, expected_A)
     np.testing.assert_array_almost_equal(discrete_ss.B, expected_B)
+
+
+def test_state_space_data_append():
+    """Test that the state space data can append results."""
+    # Arrange
+    data = StateSpaceData()
+
+    # Act
+    data.append_step(t=0.1, x=np.array([0.1, 0.2]), cov=np.eye(2), u=np.array([0.3]))
+
+    # Assert
+    np.testing.assert_array_almost_equal(data.time, [0.1])
+    np.testing.assert_array_almost_equal(data.state, [np.array([0.1, 0.2])])
+    np.testing.assert_array_almost_equal(data.covariance, [np.eye(2)])
+    np.testing.assert_array_almost_equal(data.control, [np.array([0.3])])

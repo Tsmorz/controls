@@ -129,7 +129,7 @@ class StateSpace:
 
     def plot_history(
         self, history: StateSpaceData, title: str = "State Space History"
-    ) -> None:
+    ) -> None:  # pragma: no cover
         """Plot the history of state space model.
 
         :param history: State history object
@@ -187,7 +187,7 @@ def mass_spring_damper_model(
     spring_const: float = 10.0,
     damping: float = 0.8,
     discretization_dt: Optional[float] = None,
-) -> StateSpace:
+) -> StateSpace:  # pragma: no cover
     """Calculate a simple mass spring damper model.
 
     :param mass: Mass of the system

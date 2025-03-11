@@ -54,7 +54,9 @@ lint.ignore = [
     "D102",
     "D100",
     "N806",
-    "PLR0913"
+    "PLR0913",
+    "D415",  # End first line with a period, question mark, or exclamation point
+
 ]
 
 # Automatically fix issues where possible

@@ -42,3 +42,13 @@ def test_matrix_exponential_diagonal(t: float) -> None:
 
     # Assert
     np.testing.assert_array_almost_equal(mat_exp, expected, decimal=3)
+
+
+def test_matrix_exponential_nonsquare() -> None:
+    """Test matrix exponential function with different time lengths."""
+    # Arrange
+    matrix_nonsquare = np.ones((3, 2))
+
+    # Act / Assert
+    with np.testing.assert_raises(ValueError):
+        _ = matrix_exponential(matrix_nonsquare)
