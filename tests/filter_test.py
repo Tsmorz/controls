@@ -17,18 +17,18 @@ def test_kalman_filter_initialization() -> None:
 
     kf = KalmanFilter(
         state_space=ss,
-        Q=Q,
-        R=R,
+        process_noise=Q,
+        measurement_noise=R,
         initial_state=initial_state,
         initial_covariance=initial_covariance,
     )
 
     assert isinstance(kf, KalmanFilter)
-    assert np.array_equal(kf.A, ss.A)
+    assert np.array_equal(kf.F, ss.A)
     assert np.array_equal(kf.B, ss.B)
-    assert np.array_equal(kf.C, ss.C)
-    assert np.array_equal(kf.cov_process, Q)
-    assert np.array_equal(kf.cov_measurement, R)
+    assert np.array_equal(kf.H, ss.C)
+    assert np.array_equal(kf.Q, Q)
+    assert np.array_equal(kf.R, R)
     assert np.array_equal(kf.cov, initial_covariance)
     assert np.array_equal(kf.x, initial_state)
 
@@ -45,8 +45,8 @@ def test_kalman_filter_predict_with_control_input() -> None:
 
     kf = KalmanFilter(
         state_space=ss,
-        Q=Q,
-        R=R,
+        process_noise=Q,
+        measurement_noise=R,
         initial_state=initial_state,
         initial_covariance=initial_covariance,
     )
