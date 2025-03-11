@@ -67,7 +67,7 @@ class StateSpace:
         # Generate control input over 10 steps
         num_states = self.A.shape[0]
         num_inputs = self.B.shape[1]
-        time = np.arange(0, 10, delta_t)
+        time = np.arange(0, 10, delta_t).tolist()
 
         control_input = len(time) * [np.ones((num_inputs, 1))]
 
@@ -94,7 +94,7 @@ class StateSpace:
         # Generate control input over 10 steps
         num_states = self.A.shape[0]
         num_inputs = self.B.shape[1]
-        time = np.arange(0, 10, delta_t)
+        time = np.arange(0, 10, delta_t).tolist()
 
         control_input = len(time) * [np.zeros((num_inputs, 1))]
         control_input[0] = np.ones((num_inputs, 1))
@@ -111,7 +111,7 @@ class StateSpace:
         return state_history
 
     def solve_trajectory(
-        self, time: np.ndarray, x0: np.ndarray, control_input: list[np.ndarray]
+        self, time: list[float], x0: np.ndarray, control_input: list[np.ndarray]
     ) -> StateSpaceData:
         """Solve the state-space model for given time, control input, and initial state.
 
@@ -147,6 +147,11 @@ class StateSpace:
                     data /= np.amax(np.abs(data))
                 ax.step(history.time, data, label=f"$x_{state}$")
                 ax.set_ylabel("State" if ii == 0 else "Normalized State")
+            for u in range(history.control[0].shape[1]):
+                control = [arr[u] for arr in history.control]
+                if ii == 1:
+                    control /= np.amax(np.abs(control))
+                ax.step(history.time, control, label="control input")
 
         for ax in axs:
             ax.set_xlabel("Time (s)")

@@ -64,6 +64,17 @@ class KalmanFilter:
         return self.x.copy(), self.cov.copy()
 
 
+def get_measurement(state: np.ndarray, noise: float = DEFAULT_VARIANCE) -> np.ndarray:
+    """Get a measurement of the state.
+
+    :param state: True state
+    :param noise: Variance of the noise
+    :return: Measurement of the state
+    """
+    state += np.random.normal(loc=0, scale=noise, size=state.shape)
+    return state
+
+
 if __name__ == "__main__":  # pragma: no cover
     """Run the main program with this function."""
     parser = argparse.ArgumentParser()
@@ -82,29 +93,27 @@ if __name__ == "__main__":  # pragma: no cover
         state_space=ss,
         Q=DEFAULT_VARIANCE * np.eye(2),
         R=DEFAULT_VARIANCE * np.eye(1),
-        initial_state=np.array([[0.0], [0.0]]),
+        initial_state=np.array([[1.0], [1.0]]),
         initial_covariance=np.eye(2),
     )
 
     # Generate random control inputs and measurements and update the Kalman filter
-    time = np.arange(0, 10, dt)
-    control = len(time) * [np.array([[1]])]
-    results = StateSpaceData(
-        state=[kf.x], covariance=[kf.cov], time=time, control=control
-    )
-    np.random.seed(0)  # For reproducibility
-    x_real = kf.x
-    for ii, _t in enumerate(time[:-1]):
-        x_real = ss.step(x=x_real, u=control[ii])
-
-        # calculate the prior
-        kf.predict(u=control[ii])
-
-        # calculate the posterior
-        m = kf.x + np.random.normal(loc=0, scale=DEFAULT_VARIANCE, size=(2, 1))
-        x, cov = kf.update(z=m)
+    results = StateSpaceData()
+    ground_truth_state = kf.x
+    for t in np.arange(0, 10, dt):
+        # calculate the feedback control
+        gain_matrix = -np.array([[1.0, 1.0]])
+        control = gain_matrix @ kf.x
 
         # Store the updated state for plotting
-        results.state.append(x)
-        results.covariance.append(cov)
+        results.append_step(t=t, x=kf.x, cov=kf.cov, u=control)
+
+        # keep track of the ground truth
+        ground_truth_state = ss.step(x=ground_truth_state, u=control)
+
+        # run the filter
+        kf.predict(u=control)
+        measurement = get_measurement(state=ground_truth_state)
+        kf.update(z=measurement)
+
     ss.plot_history(history=results)
