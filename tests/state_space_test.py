@@ -2,7 +2,11 @@ import numpy as np
 
 from config.definitions import DEFAULT_DT
 from src.data_classes.state_space_data import StateSpaceData
-from src.modules.state_space import StateSpace, continuous_to_discrete
+from src.modules.state_space import (
+    StateSpace,
+    continuous_to_discrete,
+    mass_spring_damper_model,
+)
 
 
 def test_state_space() -> None:
@@ -52,3 +56,72 @@ def test_state_space_data_append():
     np.testing.assert_array_almost_equal(data.state, [np.array([0.1, 0.2])])
     np.testing.assert_array_almost_equal(data.covariance, [np.eye(2)])
     np.testing.assert_array_almost_equal(data.control, [np.array([0.3])])
+
+
+def test_state_space_step() -> None:
+    """Test that the state space step method works."""
+    # Arrange
+    A = np.array([[0, 1], [0, 0]])
+    B = np.array([[0], [1]])
+    ss = StateSpace(A, B)
+
+    x = np.array([0.1, 0.2])
+    u = np.array([0.3])
+    exp_x = ss.A @ x + ss.B @ u
+
+    # Act
+    x = ss.step(x, u)
+
+    # Assert
+    np.testing.assert_array_almost_equal(x, exp_x)
+
+
+def test_state_space_incorrect_dims() -> None:
+    """Test that the state space raises an error for incompatible dimensions."""
+    # Arrange
+    A = np.eye(2)
+    B = np.array([[1, 2]])
+
+    # Act and Assert
+    with np.testing.assert_raises(ValueError):
+        StateSpace(A, B)
+
+
+def test_step_response() -> None:
+    """Test that the step response method works correctly."""
+    # Arrange
+    dt = 0.05
+    ss = mass_spring_damper_model(discretization_dt=dt)
+
+    # Act
+    data = ss.step_response(dt, plot_response=False)
+
+    # Assert
+    assert isinstance(data, StateSpaceData)
+    assert len(data.time) > 0
+    np.testing.assert_almost_equal(data.time[-1], 10 - dt)
+    assert len(data.state) > 0
+    np.testing.assert_almost_equal(data.state[0], np.zeros((2, 1)))
+    assert len(data.covariance) == 0
+    assert data.control[0] == np.ones((1, 1))
+    assert data.control[-1] == np.ones((1, 1))
+
+
+def test_impulse_response() -> None:
+    """Test that the step response method works correctly."""
+    # Arrange
+    dt = 0.05
+    ss = mass_spring_damper_model(discretization_dt=dt)
+
+    # Act
+    data = ss.impulse_response(dt, plot_response=False)
+
+    # Assert
+    assert isinstance(data, StateSpaceData)
+    assert len(data.time) > 0
+    np.testing.assert_almost_equal(data.time[-1], 10 - dt)
+    assert len(data.state) > 0
+    np.testing.assert_almost_equal(data.state[0], np.zeros((2, 1)))
+    assert len(data.covariance) == 0
+    assert data.control[0] == np.ones((1, 1))
+    assert data.control[-1] == np.zeros((1, 1))

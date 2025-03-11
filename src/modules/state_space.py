@@ -77,7 +77,7 @@ class StateSpace:
             control_input=control_input,
         )
 
-        if plot_response:
+        if plot_response:  # pragma: no cover
             self.plot_history(history=state_history, title="Step Response")
 
         return state_history
@@ -105,7 +105,7 @@ class StateSpace:
             control_input=control_input,
         )
 
-        if plot_response:
+        if plot_response:  # pragma: no cover
             self.plot_history(history=state_history, title="Impulse Response")
 
         return state_history
