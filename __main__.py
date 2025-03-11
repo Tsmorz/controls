@@ -4,11 +4,11 @@ import argparse
 
 import numpy as np
 from loguru import logger
-from scipy.signal import place_poles
 
 from config.definitions import MEASUREMENT_NOISE, PROCESS_NOISE
+from src.modules.controller import full_state_feedback, get_control_input
 from src.modules.filter import KalmanFilter, get_measurement
-from src.modules.state_space import StateSpace, StateSpaceData, mass_spring_damper_model
+from src.modules.state_space import StateSpaceData, mass_spring_damper_model
 
 
 def main(dir_path: str) -> None:
@@ -33,10 +33,9 @@ def main(dir_path: str) -> None:
     gain_matrix = full_state_feedback(ss, desired_eigenvalues)
     desired = np.array([[0], [0]])
     for t in time:
-        error = kf.x - desired
-        control = -gain_matrix @ error
-        clip_limit = 10000
-        control = np.clip(control, -clip_limit, clip_limit)
+        control = get_control_input(
+            x=kf.x, desired=desired, gain_matrix=gain_matrix, limit=100
+        )
 
         # Store the updated state for plotting
         results.append_step(t=t, x=kf.x, cov=kf.cov, u=control)
@@ -48,24 +47,6 @@ def main(dir_path: str) -> None:
         kf.update(z=measurement)
 
     ss.plot_history(history=results)
-
-
-def full_state_feedback(state_space: StateSpace, desired_eigenvalues: np.ndarray):
-    """Calculate the feedback gains for a desired response.
-
-    :param state_space: State-space model
-    :param desired_eigenvalues: Desired eigenvalues
-    :return: Feedback gains
-    """
-    place_result = place_poles(state_space.A, state_space.B, desired_eigenvalues)
-    K = place_result.gain_matrix
-
-    augmented = state_space.A - state_space.B @ K
-    if np.linalg.eigvals(augmented).all() != desired_eigenvalues.all():
-        msg = "The desired eigenvalues are not correct."
-        logger.error(msg)
-        raise ValueError(msg)
-    return K
 
 
 if __name__ == "__main__":  # pragma: no cover

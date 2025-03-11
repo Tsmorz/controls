@@ -4,8 +4,46 @@ from typing import Optional
 
 import numpy as np
 from loguru import logger
+from scipy.signal import place_poles
 
 from config.definitions import DEFAULT_NUM_STEPS
+from src.modules.state_space import StateSpace
+
+
+def full_state_feedback(state_space: StateSpace, desired_eigenvalues: np.ndarray):
+    """Calculate the feedback gains for a desired response.
+
+    :param state_space: State-space model
+    :param desired_eigenvalues: Desired eigenvalues
+    :return: Feedback gains
+    """
+    place_result = place_poles(state_space.A, state_space.B, desired_eigenvalues)
+    K = place_result.gain_matrix
+
+    augmented = state_space.A - state_space.B @ K
+    if np.linalg.eigvals(augmented).all() != desired_eigenvalues.all():
+        msg = "The desired eigenvalues are not correct."
+        logger.error(msg)
+        raise ValueError(msg)
+    return K
+
+
+def get_control_input(
+    x: np.ndarray,
+    desired: np.ndarray,
+    gain_matrix: np.ndarray,
+    limit: float = np.inf,
+) -> np.ndarray:
+    """Calculate the control input based on the state and desired tracking.
+
+    :param x: Current state
+    :param desired: Desired state
+    :param gain_matrix: Feedback gain matrix
+    :param limit: Limit on the controller
+    :return: Control input
+    """
+    control = -gain_matrix @ (x - desired)
+    return np.clip(control, -limit, limit)
 
 
 class LQRController:
