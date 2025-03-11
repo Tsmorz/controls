@@ -11,6 +11,19 @@ from config.definitions import DEFAULT_DT, FIG_SIZE, LEGEND_LOC
 from src.data_classes.state_space_data import StateSpaceData
 
 
+def _add_bounds(ax, data, sigma, history, state, color) -> None:
+    lower = data - 2.576 * sigma
+    upper = data + 2.576 * sigma
+    ax.fill_between(
+        history.time,
+        lower,
+        upper,
+        color=color,
+        alpha=0.5,
+        label=f"$x_{state} sigma$",
+    )
+
+
 class StateSpace:
     """A discrete-time state-space model representation."""
 
@@ -141,39 +154,37 @@ class StateSpace:
         plt.suptitle(title)
 
         for ii, ax in enumerate(axs):
-            for state in range(num_states):
-                data = np.array([arr[state] for arr in history.state])
+            for num_state in range(num_states):
+                data = np.array([arr[num_state] for arr in history.state])
                 data = data.flatten()
 
-                sigma = np.array([arr[state, state] for arr in history.covariance])
-                sigma = sigma.flatten()
-
+                sigma = np.array(
+                    [arr[num_state, num_state] for arr in history.covariance]
+                )
                 if ii == 1:
                     data /= np.amax(np.abs(data))
 
-                p = ax.step(history.time, data, label=f"$x_{state}$")
-                c = p[0].get_color()
-                lower = data - 5 * sigma
-                upper = data + 5 * sigma
-                ax.fill_between(
-                    history.time,
-                    lower,
-                    upper,
-                    color=c,
-                    alpha=0.5,
-                    label=f"$x_{state} sigma$",
+                p = ax.step(history.time, data, label=f"$x_{num_state}$", alpha=0.8)
+                _add_bounds(
+                    ax,
+                    data=data,
+                    sigma=sigma.flatten(),
+                    history=history,
+                    state=num_state,
+                    color=p[0].get_color(),
                 )
                 ax.set_ylabel("State" if ii == 0 else "Normalized State")
             for u in range(history.control[0].shape[1]):
                 control = [arr[u] for arr in history.control]
                 if ii == 1:
                     control /= np.amax(np.abs(control))
-                ax.step(history.time, control, label="control input")
+                ax.step(history.time, control, label="control input", alpha=0.8)
 
         for ax in axs:
             ax.set_xlabel("Time (s)")
             ax.grid(True)
             ax.legend(loc=LEGEND_LOC)
+            ax.set_xlim(min(history.time) - 0.5, max(history.time) + 0.5)
 
         plt.show()
         plt.close()
