@@ -53,6 +53,7 @@ def main(dir_path: str) -> None:
         kf.update(z=measurement)
 
     ss.plot_history(history=estimates)
+    ss.plot_states(history=estimates)
 
 
 if __name__ == "__main__":  # pragma: no cover
