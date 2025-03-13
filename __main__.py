@@ -23,8 +23,8 @@ def main(dir_path: str) -> None:
         state_space=ss,
         process_noise=PROCESS_NOISE * np.eye(2),
         measurement_noise=MEASUREMENT_NOISE * np.eye(2),
-        initial_state=np.array([[2.0], [2.0]]),
-        initial_covariance=np.eye(2),
+        initial_state=np.array([[5.0], [5.0]]),
+        initial_covariance=5 * np.eye(2),
     )
 
     # Generate random control inputs and measurements and update the Kalman filter
