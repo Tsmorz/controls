@@ -1,6 +1,7 @@
 """Add a doc string to my files."""
 
 from dataclasses import dataclass, field
+from typing import Optional
 
 import numpy as np
 
@@ -15,9 +16,15 @@ class StateSpaceData:
     covariance: list[np.ndarray] = field(default_factory=list)
 
     def append_step(
-        self, t: float, x: np.ndarray, cov: np.ndarray, u: np.ndarray
+        self,
+        t: float,
+        x: np.ndarray,
+        cov: Optional[np.ndarray] = None,
+        u: Optional[np.ndarray] = None,
     ) -> None:
         self.time.append(t)
         self.state.append(x)
-        self.control.append(u)
-        self.covariance.append(cov)
+        if u is not None:
+            self.control.append(u)
+        if cov is not None:
+            self.covariance.append(cov)

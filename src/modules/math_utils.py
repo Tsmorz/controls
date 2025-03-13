@@ -30,3 +30,17 @@ def matrix_exponential(matrix: np.ndarray, t: float = 1.0) -> np.ndarray:
         J = scipy.linalg.expm(t * J)
         matrix_exp = P @ J @ np.linalg.inv(P)
     return matrix_exp.real
+
+
+def symmetrize_matrix(matrix: np.ndarray) -> np.ndarray:
+    """Symmetrize a matrix.
+
+    :param matrix: A square matrix represented as a numpy array.
+    """
+    if np.shape(matrix)[0] != np.shape(matrix)[1]:
+        dim = matrix.shape
+        msg = f"Input matrix must be square. Matrix has dimensions: {dim[0]}x{dim[1]}."
+        logger.error(msg)
+        raise ValueError(msg)
+
+    return (matrix + matrix.T) / 2

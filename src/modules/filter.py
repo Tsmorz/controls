@@ -6,6 +6,7 @@ from typing import Optional
 import numpy as np
 
 from config.definitions import MEASUREMENT_NOISE, PROCESS_NOISE
+from src.modules.math_utils import symmetrize_matrix
 from src.modules.state_space import (
     StateSpace,
     StateSpaceData,
@@ -50,7 +51,9 @@ class KalmanFilter:
         if u is None:
             u = np.zeros((self.B.shape[1], 1))
         self.x = self.state_space.step(x=self.x, u=u)
+
         self.cov = self.F @ self.cov @ self.F.T + self.Q
+        self.cov = symmetrize_matrix(self.cov)
 
     def update(self, z: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Update the state estimate with measurement z.
@@ -64,6 +67,8 @@ class KalmanFilter:
         K = self.cov @ self.H.T @ np.linalg.inv(S)  # Kalman gain
         self.x = self.x + K @ y
         self.cov = (np.eye(self.cov.shape[0]) - K @ self.H) @ self.cov
+        self.cov = symmetrize_matrix(self.cov)
+
         return self.x.copy(), self.cov.copy()
 
 
