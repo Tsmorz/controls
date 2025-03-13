@@ -7,21 +7,8 @@ import numpy as np
 from loguru import logger
 from scipy.signal import cont2discrete
 
-from config.definitions import DEFAULT_DT, FIG_SIZE, LEGEND_LOC
+from config.definitions import FIG_SIZE, LEGEND_LOC
 from src.data_classes.state_space_data import StateSpaceData
-
-
-def _add_bounds(ax, data, sigma, history, state, color) -> None:
-    lower = data - 2.576 * sigma
-    upper = data + 2.576 * sigma
-    ax.fill_between(
-        history.time,
-        lower,
-        upper,
-        color=color,
-        alpha=0.5,
-        label=f"$x_{state} sigma$",
-    )
 
 
 class StateSpace:
@@ -33,6 +20,7 @@ class StateSpace:
         B: np.ndarray,
         C: Optional[np.ndarray] = None,
         D: Optional[np.ndarray] = None,
+        discretization_dt: float = 0.0,
     ):
         """Initialize the state-space model.
 
@@ -40,6 +28,7 @@ class StateSpace:
         :param B: Control input matrix
         :param C: Observation matrix
         :param D: Direct transmission matrix
+        :param discretization_dt: Discretization time step
         """
         if A.shape[0] != B.shape[0]:
             msg = (
@@ -58,6 +47,11 @@ class StateSpace:
         if D is None:
             D = np.zeros((C.shape[0], B.shape[1]))
         self.D = D
+
+        self.discretization_dt = discretization_dt
+
+        if self.discretization_dt > 0.0:
+            self._continuous_to_discrete()
 
     def step(self, x: np.ndarray, u: np.ndarray) -> np.ndarray:
         """Step the state-space model by one step.
@@ -140,6 +134,19 @@ class StateSpace:
             state_history.state.append(x)
         return state_history
 
+    @staticmethod
+    def _add_bounds(ax, data, sigma, history, state, color) -> None:
+        lower = data - 2.576 * sigma
+        upper = data + 2.576 * sigma
+        ax.fill_between(
+            history.time,
+            lower,
+            upper,
+            color=color,
+            alpha=0.5,
+            label=f"$x_{state} 99 C.I. $",
+        )
+
     def plot_history(
         self, history: StateSpaceData, title: str = "State Space History"
     ) -> None:  # pragma: no cover
@@ -165,7 +172,7 @@ class StateSpace:
                     data /= np.amax(np.abs(data))
 
                 p = ax.step(history.time, data, label=f"$x_{num_state}$", alpha=0.8)
-                _add_bounds(
+                self._add_bounds(
                     ax,
                     data=data,
                     sigma=sigma.flatten(),
@@ -189,32 +196,22 @@ class StateSpace:
         plt.show()
         plt.close()
 
+    def _continuous_to_discrete(self) -> None:
+        """Convert a continuous state space to discrete state space."""
+        system = (self.A, self.B, self.C, self.D)
+        system_disc = cont2discrete(system, dt=self.discretization_dt, method="zoh")
 
-def continuous_to_discrete(
-    state_space: StateSpace, discretization_dt: float = DEFAULT_DT
-) -> StateSpace:
-    """Convert a continuous state space to discrete state space.
-
-    :param state_space: Continuous state-space model
-    :param discretization_dt: Desired discrete time step size
-    :return: Discrete state-space model
-    """
-    system = (state_space.A, state_space.B, state_space.C, state_space.D)
-    system_disc = cont2discrete(system, dt=discretization_dt, method="zoh")
-
-    state_space.A = system_disc[0]
-    state_space.B = system_disc[1]
-    state_space.C = system_disc[2]
-    state_space.D = system_disc[3]
-
-    return state_space
+        self.A = system_disc[0]
+        self.B = system_disc[1]
+        self.C = system_disc[2]
+        self.D = system_disc[3]
 
 
 def mass_spring_damper_model(
     mass: float = 0.5,
-    spring_const: float = 10.0,
-    damping: float = 0.8,
-    discretization_dt: Optional[float] = None,
+    spring_const: float = 20.0,
+    damping: float = 0.4,
+    discretization_dt: float = 0.0,
 ) -> StateSpace:  # pragma: no cover
     """Calculate a simple mass spring damper model.
 
@@ -227,10 +224,8 @@ def mass_spring_damper_model(
     model = StateSpace(
         A=np.array([[0.0, 1.0], [-spring_const / mass, -damping / mass]]),
         B=np.array([[0.0], [1.0 / mass]]),
+        discretization_dt=discretization_dt,
     )
-
-    if discretization_dt is not None:
-        model = continuous_to_discrete(model, discretization_dt=discretization_dt)
     return model
 
 

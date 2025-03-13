@@ -4,7 +4,6 @@ from config.definitions import DEFAULT_DT
 from src.data_classes.state_space_data import StateSpaceData
 from src.modules.state_space import (
     StateSpace,
-    continuous_to_discrete,
     mass_spring_damper_model,
 )
 
@@ -12,17 +11,17 @@ from src.modules.state_space import (
 def test_state_space() -> None:
     """Test that the state space is initialized correctly."""
     # Arrange
-    A = np.eye(2)
+    A = np.array([[1, 0], [0, 1]])
     B = np.array([[1], [0]])
 
     # Act
     ss = StateSpace(A, B)
 
     # Assert
-    np.testing.assert_allclose(ss.A, A)
-    np.testing.assert_allclose(ss.B, B)
-    np.testing.assert_allclose(ss.C, np.eye(2))
-    np.testing.assert_allclose(ss.D, np.zeros((2, 1)))
+    np.testing.assert_array_almost_equal(ss.A, A)
+    np.testing.assert_array_almost_equal(ss.B, B)
+    np.testing.assert_array_almost_equal(ss.C, np.array([[1, 0], [0, 1]]))
+    np.testing.assert_array_almost_equal(ss.D, np.array([[0], [0]]))
 
 
 def test_continuous_to_discrete() -> None:
@@ -30,11 +29,10 @@ def test_continuous_to_discrete() -> None:
     # Arrange
     A = np.array([[0, 1], [0, 0]])
     B = np.array([[0], [1]])
-    ss = StateSpace(A, B)
     dt = DEFAULT_DT
 
     # Act
-    discrete_ss = continuous_to_discrete(ss, dt)
+    discrete_ss = StateSpace(A, B, discretization_dt=dt)
 
     # Assert
     expected_A = np.array([[1.0, dt], [0.0, 1.0]])
@@ -54,7 +52,7 @@ def test_state_space_data_append():
     # Assert
     np.testing.assert_array_almost_equal(data.time, [0.1])
     np.testing.assert_array_almost_equal(data.state, [np.array([0.1, 0.2])])
-    np.testing.assert_array_almost_equal(data.covariance, [np.eye(2)])
+    np.testing.assert_array_almost_equal(data.covariance, [np.array([[1, 0], [0, 1]])])
     np.testing.assert_array_almost_equal(data.control, [np.array([0.3])])
 
 
@@ -99,9 +97,9 @@ def test_step_response() -> None:
     # Assert
     assert isinstance(data, StateSpaceData)
     assert len(data.time) > 0
-    np.testing.assert_almost_equal(data.time[-1], 10 - dt)
+    np.testing.assert_array_almost_equal(data.time[-1], 10 - dt)
     assert len(data.state) > 0
-    np.testing.assert_almost_equal(data.state[0], np.zeros((2, 1)))
+    np.testing.assert_array_almost_equal(data.state[0], np.array([[0], [0]]))
     assert len(data.covariance) == 0
     assert data.control[0] == np.ones((1, 1))
     assert data.control[-1] == np.ones((1, 1))
@@ -121,7 +119,7 @@ def test_impulse_response() -> None:
     assert len(data.time) > 0
     np.testing.assert_almost_equal(data.time[-1], 10 - dt)
     assert len(data.state) > 0
-    np.testing.assert_almost_equal(data.state[0], np.zeros((2, 1)))
+    np.testing.assert_array_almost_equal(data.state[0], np.array([[0], [0]]))
     assert len(data.covariance) == 0
     assert data.control[0] == np.ones((1, 1))
     assert data.control[-1] == np.zeros((1, 1))
