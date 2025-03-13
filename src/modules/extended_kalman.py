@@ -1,12 +1,11 @@
 """Basic docstring for my module."""
 
 import argparse
-from typing import Optional
 
 import numpy as np
 
 from config.definitions import MEASUREMENT_NOISE, PROCESS_NOISE
-from src.modules.math_utils import symmetrize_matrix
+from src.modules.kalman import KalmanFilter, get_measurement
 from src.modules.state_space import (
     StateSpace,
     StateSpaceData,
@@ -14,7 +13,7 @@ from src.modules.state_space import (
 )
 
 
-class KalmanFilter:
+class ExtendedKalmanFilter(KalmanFilter):
     """Kalman filter implementation."""
 
     def __init__(
@@ -34,6 +33,13 @@ class KalmanFilter:
         :param initial_covariance: Initial error covariance
         :return: None
         """
+        super().__init__(
+            state_space,
+            process_noise,
+            measurement_noise,
+            initial_state,
+            initial_covariance,
+        )
         self.state_space = state_space
         self.F: np.ndarray = state_space.A
         self.B: np.ndarray = state_space.B
@@ -42,50 +48,6 @@ class KalmanFilter:
         self.R: np.ndarray = measurement_noise
         self.cov: np.ndarray = initial_covariance
         self.x: np.ndarray = initial_state
-
-    def predict(self, u: Optional[np.ndarray] = None) -> None:
-        """Predict the next state and error covariance.
-
-        :param u: Control input
-        """
-        if u is None:
-            u = np.zeros((self.B.shape[1], 1))
-        self.x = self.state_space.step(x=self.x, u=u)
-
-        self.cov = self.F @ self.cov @ self.F.T + self.Q
-        self.cov = symmetrize_matrix(self.cov)
-
-    def update(self, z: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        """Update the state estimate with measurement z.
-
-        :param z: Measurement
-        :return: Updated state estimate and state covariance
-        """
-        # print(self.cov_measurement)
-        y = z - self.H @ self.x  # Measurement residual
-        S = self.H @ self.cov @ self.H.T + self.R  # Innovation covariance
-        K = self.cov @ self.H.T @ np.linalg.inv(S)  # Kalman gain
-        self.x = self.x + K @ y
-        self.cov = (np.eye(self.cov.shape[0]) - K @ self.H) @ self.cov
-        self.cov = symmetrize_matrix(self.cov)
-
-        return self.x.copy(), self.cov.copy()
-
-
-def get_measurement(
-    obs_matrix: np.ndarray, state: np.ndarray, noise: np.ndarray
-) -> np.ndarray:
-    """Get a measurement of the state.
-
-    :param obs_matrix: Observation matrix
-    :param state: True state
-    :param noise: Variance of the noise
-    :return: Measurement of the state
-    """
-    scale = np.diag(noise)
-    scale = np.reshape(scale, (obs_matrix.shape[0], 1))
-    noise = np.random.normal(loc=0.0, scale=scale, size=(obs_matrix.shape[0], 1))
-    return obs_matrix @ state + noise
 
 
 if __name__ == "__main__":  # pragma: no cover
@@ -103,7 +65,7 @@ if __name__ == "__main__":  # pragma: no cover
     time = np.arange(0, 5, dt).tolist()
     ss = mass_spring_damper_model(discretization_dt=dt)
 
-    kf = KalmanFilter(
+    kf = ExtendedKalmanFilter(
         state_space=ss,
         process_noise=PROCESS_NOISE * np.eye(2),
         measurement_noise=MEASUREMENT_NOISE * np.eye(2),

@@ -1,7 +1,7 @@
 import numpy as np
 
 from config.definitions import DEFAULT_VARIANCE
-from src.modules.filter import KalmanFilter
+from src.modules.kalman import KalmanFilter
 from src.modules.state_space import mass_spring_damper_model
 
 

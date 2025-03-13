@@ -7,7 +7,7 @@ from loguru import logger
 
 from config.definitions import MEASUREMENT_NOISE, PROCESS_NOISE
 from src.modules.controller import full_state_feedback, get_control_input
-from src.modules.filter import KalmanFilter, get_measurement
+from src.modules.kalman import KalmanFilter, get_measurement
 from src.modules.state_space import StateSpaceData, mass_spring_damper_model
 
 
