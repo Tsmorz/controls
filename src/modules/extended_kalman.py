@@ -1,8 +1,10 @@
 """Basic docstring for my module."""
 
-from typing import Optional
+from typing import Callable, Optional
 
+import jax
 import numpy as np
+from loguru import logger
 
 from src.modules.math_utils import symmetrize_matrix
 from src.modules.state_space import (
@@ -72,3 +74,33 @@ class ExtendedKalmanFilter:
 
         :return: None
         """
+
+
+def linearize(funcs: list[Callable], x: np.ndarray) -> np.ndarray:
+    """Linearize a list of callables.
+
+    :param funcs: List of callables
+    :param x: Input points to linearize around
+    :return: Jacobian matrix
+    """
+    jacobian = np.zeros((len(funcs), len(x)))
+    for ii, f in enumerate(funcs):
+        grad_f = jax.grad(f, argnums=(0, 1))
+        jacobian[ii, :] = grad_f(x[0], x[1])
+    return jacobian
+
+
+if __name__ == "__main__":
+
+    def f1(x1, x2) -> float:
+        """Create a simple function."""
+        value = x1**2 + x1 + 5 + x2
+        return value
+
+    def f2(x1, x2) -> float:
+        """Create a simple function."""
+        value = x2**2 + x2 + 5 + x1
+        return value
+
+    jac = linearize([f1, f2], x=np.array([1.0, 1.0]))
+    logger.info(jac)
