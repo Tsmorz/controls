@@ -31,9 +31,9 @@ class KalmanFilter:
         :return: None
         """
         self.state_space = state_space
-        self.F: np.ndarray = state_space.A
+        self.A: np.ndarray = state_space.A
         self.B: np.ndarray = state_space.B
-        self.H: np.ndarray = state_space.C
+        self.C: np.ndarray = state_space.C
         self.Q: np.ndarray = process_noise
         self.R: np.ndarray = measurement_noise
         self.cov: np.ndarray = initial_covariance
@@ -48,7 +48,7 @@ class KalmanFilter:
             u = np.zeros((self.B.shape[1], 1))
         self.x = self.state_space.step(x=self.x, u=u)
 
-        self.cov = self.F @ self.cov @ self.F.T + self.Q
+        self.cov = self.A @ self.cov @ self.A.T + self.Q
         self.cov = symmetrize_matrix(self.cov)
 
     def update(self, z: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -58,27 +58,11 @@ class KalmanFilter:
         :return: Updated state estimate and state covariance
         """
         # print(self.cov_measurement)
-        y = z - self.H @ self.x  # Measurement residual
-        S = self.H @ self.cov @ self.H.T + self.R  # Innovation covariance
-        K = self.cov @ self.H.T @ np.linalg.inv(S)  # Kalman gain
+        y = z - self.C @ self.x  # Measurement residual
+        S = self.C @ self.cov @ self.C.T + self.R  # Innovation covariance
+        K = self.cov @ self.C.T @ np.linalg.inv(S)  # Kalman gain
         self.x = self.x + K @ y
-        self.cov = (np.eye(self.cov.shape[0]) - K @ self.H) @ self.cov
+        self.cov = (np.eye(self.cov.shape[0]) - K @ self.C) @ self.cov
         self.cov = symmetrize_matrix(self.cov)
 
         return self.x.copy(), self.cov.copy()
-
-
-def get_measurement(
-    obs_matrix: np.ndarray, state: np.ndarray, noise: np.ndarray
-) -> np.ndarray:
-    """Get a measurement of the state.
-
-    :param obs_matrix: Observation matrix
-    :param state: True state
-    :param noise: Variance of the noise
-    :return: Measurement of the state
-    """
-    scale = np.diag(noise)
-    scale = np.reshape(scale, (obs_matrix.shape[0], 1))
-    noise = np.random.normal(loc=0.0, scale=scale, size=(obs_matrix.shape[0], 1))
-    return obs_matrix @ state + noise

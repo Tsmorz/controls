@@ -1,19 +1,16 @@
 """Basic docstring for my module."""
 
-import argparse
+from typing import Optional
 
 import numpy as np
 
-from config.definitions import MEASUREMENT_NOISE, PROCESS_NOISE
-from src.modules.kalman import KalmanFilter, get_measurement
+from src.modules.math_utils import symmetrize_matrix
 from src.modules.state_space import (
     StateSpace,
-    StateSpaceData,
-    mass_spring_damper_model,
 )
 
 
-class ExtendedKalmanFilter(KalmanFilter):
+class ExtendedKalmanFilter:
     """Kalman filter implementation."""
 
     def __init__(
@@ -33,13 +30,6 @@ class ExtendedKalmanFilter(KalmanFilter):
         :param initial_covariance: Initial error covariance
         :return: None
         """
-        super().__init__(
-            state_space,
-            process_noise,
-            measurement_noise,
-            initial_state,
-            initial_covariance,
-        )
         self.state_space = state_space
         self.F: np.ndarray = state_space.A
         self.B: np.ndarray = state_space.B
@@ -49,45 +39,36 @@ class ExtendedKalmanFilter(KalmanFilter):
         self.cov: np.ndarray = initial_covariance
         self.x: np.ndarray = initial_state
 
+    def predict(self, u: Optional[np.ndarray] = None) -> None:
+        """Predict the next state and error covariance.
 
-if __name__ == "__main__":  # pragma: no cover
-    """Run the main program with this function."""
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-d",
-        "--dir",
-        action="store",
-        default=None,
-        help="Directory to process.",
-    )
+        :param u: Control input
+        """
+        if u is None:
+            u = np.zeros((self.B.shape[1], 1))
+        self.x = self.state_space.step(x=self.x, u=u)
 
-    dt = 0.05
-    time = np.arange(0, 5, dt).tolist()
-    ss = mass_spring_damper_model(discretization_dt=dt)
+        self.cov = self.F @ self.cov @ self.F.T + self.Q
+        self.cov = symmetrize_matrix(self.cov)
 
-    kf = ExtendedKalmanFilter(
-        state_space=ss,
-        process_noise=PROCESS_NOISE * np.eye(2),
-        measurement_noise=MEASUREMENT_NOISE * np.eye(2),
-        initial_state=np.array([[1.0], [1.0]]),
-        initial_covariance=np.eye(2),
-    )
+    def update(self, z: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """Update the state estimate with measurement z.
 
-    # Generate random control inputs and measurements and update the Kalman filter
-    results = StateSpaceData()
-    ground_truth_state = kf.x
-    for t in time:
-        # calculate the feedback control
-        gain_matrix = -np.array([[1.0, 1.0]])
-        control = gain_matrix @ kf.x
+        :param z: Measurement
+        :return: Updated state estimate and state covariance
+        """
+        # print(self.cov_measurement)
+        y = z - self.H @ self.x  # Measurement residual
+        S = self.H @ self.cov @ self.H.T + self.R  # Innovation covariance
+        K = self.cov @ self.H.T @ np.linalg.inv(S)  # Kalman gain
+        self.x = self.x + K @ y
+        self.cov = (np.eye(self.cov.shape[0]) - K @ self.H) @ self.cov
+        self.cov = symmetrize_matrix(self.cov)
 
-        # Store the updated state for plotting
-        results.append_step(t=t, x=kf.x, cov=kf.cov, u=control)
+        return self.x.copy(), self.cov.copy()
 
-        # step through the filter
-        kf.predict(u=control)
-        ground_truth_state = ss.step(x=ground_truth_state, u=control)
-        measurement = get_measurement(ss.C, state=ground_truth_state, noise=kf.R)
-        kf.update(z=measurement)
+    def linearize_model(self) -> None:
+        """Linearize the state-space model.
 
-    ss.plot_history(history=results)
+        :return: None
+        """

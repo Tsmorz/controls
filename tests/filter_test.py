@@ -24,9 +24,9 @@ def test_kalman_filter_initialization() -> None:
     )
 
     assert isinstance(kf, KalmanFilter)
-    assert np.array_equal(kf.F, ss.A)
+    assert np.array_equal(kf.A, ss.A)
     assert np.array_equal(kf.B, ss.B)
-    assert np.array_equal(kf.H, ss.C)
+    assert np.array_equal(kf.C, ss.C)
     assert np.array_equal(kf.Q, Q)
     assert np.array_equal(kf.R, R)
     assert np.array_equal(kf.cov, initial_covariance)

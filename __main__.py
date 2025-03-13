@@ -7,7 +7,8 @@ from loguru import logger
 
 from config.definitions import MEASUREMENT_NOISE, PROCESS_NOISE
 from src.modules.controller import full_state_feedback, get_control_input
-from src.modules.kalman import KalmanFilter, get_measurement
+from src.modules.kalman import KalmanFilter
+from src.modules.simulator import Simulator
 from src.modules.state_space import StateSpaceData, mass_spring_damper_model
 
 
@@ -32,9 +33,15 @@ def main(dir_path: str) -> None:
         initial_covariance=5 * np.eye(2),
     )
 
+    sim = Simulator(
+        state_space=ss,
+        process_noise=kf.Q,
+        measurement_noise=kf.R,
+        initial_state=kf.x,
+    )
+
     estimates = StateSpaceData()
     ground_truth = StateSpaceData()
-    ground_truth_state = kf.x
 
     # Generate control inputs, measurements, and update the Kalman filter
     for t in time:
@@ -44,12 +51,14 @@ def main(dir_path: str) -> None:
 
         # Store the updated state for plotting
         estimates.append_step(t=t, x=kf.x, cov=kf.cov, u=control)
-        ground_truth.append_step(t=t, x=ground_truth_state)
+        ground_truth.append_step(t=t, x=sim.x)
 
-        # step through the filter
+        # Simulate the system
+        sim.step(u=control)
+        measurement = sim.get_measurement()
+
+        # Step through the filter
         kf.predict(u=control)
-        ground_truth_state = ss.step(x=ground_truth_state, u=control)
-        measurement = get_measurement(ss.C, state=ground_truth_state, noise=kf.R)
         kf.update(z=measurement)
 
     ss.plot_history(history=estimates)
