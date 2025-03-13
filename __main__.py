@@ -40,29 +40,25 @@ def main(dir_path: str) -> None:
         initial_state=kf.x,
     )
 
-    estimates = StateSpaceData()
-    ground_truth = StateSpaceData()
+    sim_history = StateSpaceData()
 
     # Generate control inputs, measurements, and update the Kalman filter
     for t in time:
-        control = get_control_input(
-            x=kf.x, desired=desired_state, gain_matrix=gain_matrix, limit=100
-        )
+        u = get_control_input(x=kf.x, desired=desired_state, gain_matrix=gain_matrix)
 
         # Store the updated state for plotting
-        estimates.append_step(t=t, x=kf.x, cov=kf.cov, u=control)
-        ground_truth.append_step(t=t, x=sim.x)
+        sim_history.append_step(t=t, x=kf.x, cov=kf.cov, u=u, x_truth=sim.x)
 
         # Simulate the system
-        sim.step(u=control)
+        sim.step(u=u)
         measurement = sim.get_measurement()
 
         # Step through the filter
-        kf.predict(u=control)
+        kf.predict(u=u)
         kf.update(z=measurement)
 
-    ss.plot_history(history=estimates)
-    ss.plot_states(history=estimates)
+    ss.plot_history(history=sim_history)
+    ss.plot_states(history=sim_history)
 
 
 if __name__ == "__main__":  # pragma: no cover

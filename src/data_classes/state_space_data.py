@@ -12,6 +12,7 @@ class StateSpaceData:
 
     time: list[float] = field(default_factory=list)
     state: list[np.ndarray] = field(default_factory=list)
+    state_true: list[np.ndarray] = field(default_factory=list)
     control: list[np.ndarray] = field(default_factory=list)
     covariance: list[np.ndarray] = field(default_factory=list)
 
@@ -19,6 +20,7 @@ class StateSpaceData:
         self,
         t: float,
         x: np.ndarray,
+        x_truth: Optional[np.ndarray] = None,
         cov: Optional[np.ndarray] = None,
         u: Optional[np.ndarray] = None,
     ) -> None:
@@ -28,3 +30,5 @@ class StateSpaceData:
             self.control.append(u)
         if cov is not None:
             self.covariance.append(cov)
+        if x_truth is not None:
+            self.state_true.append(x_truth)
