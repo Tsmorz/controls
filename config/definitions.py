@@ -4,6 +4,8 @@
 FIG_SIZE = (12, 7)
 LEGEND_LOC = "upper right"
 DEFAULT_NUM_STEPS = 100
+PLOT_ALPHA = 0.8
+PLOT_MARKER_SIZE = 3
 
 # Kalman filter definitions
 DEFAULT_VARIANCE = 1e-2
