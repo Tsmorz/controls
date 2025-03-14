@@ -32,13 +32,14 @@ def test_continuous_to_discrete() -> None:
     dt = DEFAULT_DT
 
     # Act
-    discrete_ss = StateSpace(A, B, discretization_dt=dt)
+    ss = StateSpace(A, B)
+    ss.continuous_to_discrete(discretization_dt=dt)
 
     # Assert
     expected_A = np.array([[1.0, dt], [0.0, 1.0]])
     expected_B = np.array([[dt**2 / 2], [dt]])
-    np.testing.assert_array_almost_equal(discrete_ss.A, expected_A)
-    np.testing.assert_array_almost_equal(discrete_ss.B, expected_B)
+    np.testing.assert_array_almost_equal(ss.A, expected_A)
+    np.testing.assert_array_almost_equal(ss.B, expected_B)
 
 
 def test_state_space_data_append():

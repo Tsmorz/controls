@@ -21,7 +21,6 @@ class StateSpace:
         B: np.ndarray,
         C: Optional[np.ndarray] = None,
         D: Optional[np.ndarray] = None,
-        discretization_dt: float = 0.0,
     ):
         """Initialize the state-space model.
 
@@ -29,7 +28,6 @@ class StateSpace:
         :param B: Control input matrix
         :param C: Observation matrix
         :param D: Direct transmission matrix
-        :param discretization_dt: Discretization time step
         """
         if A.shape[0] != B.shape[0]:
             msg = (
@@ -48,11 +46,6 @@ class StateSpace:
         if D is None:
             D = np.zeros((C.shape[0], B.shape[1]))
         self.D = D
-
-        self.discretization_dt = discretization_dt
-
-        if self.discretization_dt > 0.0:
-            self._continuous_to_discrete()
 
     def step(self, x: np.ndarray, u: np.ndarray) -> np.ndarray:
         """Step the state-space model by one step.
@@ -242,10 +235,10 @@ class StateSpace:
         plt.show()
         plt.close()
 
-    def _continuous_to_discrete(self) -> None:
+    def continuous_to_discrete(self, discretization_dt) -> None:
         """Convert a continuous state space to discrete state space."""
         system = (self.A, self.B, self.C, self.D)
-        system_disc = cont2discrete(system, dt=self.discretization_dt, method="zoh")
+        system_disc = cont2discrete(system, dt=discretization_dt, method="zoh")
 
         self.A = system_disc[0]
         self.B = system_disc[1]
@@ -270,8 +263,8 @@ def mass_spring_damper_model(
     model = StateSpace(
         A=np.array([[0.0, 1.0], [-spring_const / mass, -damping / mass]]),
         B=np.array([[0.0], [1.0 / mass]]),
-        discretization_dt=discretization_dt,
     )
+    model.continuous_to_discrete(discretization_dt)
     return model
 
 
