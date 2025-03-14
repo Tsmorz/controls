@@ -14,3 +14,7 @@ MEASUREMENT_NOISE = 5.0
 
 # State space definitions
 DEFAULT_DT = 1.0
+
+# Logger definitions
+LOG_DECIMALS = 3
+LOG_LEVEL = "INFO"
