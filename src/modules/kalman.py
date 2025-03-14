@@ -31,9 +31,6 @@ class KalmanFilter:
         :return: None
         """
         self.state_space = state_space
-        self.A: np.ndarray = state_space.A
-        self.B: np.ndarray = state_space.B
-        self.C: np.ndarray = state_space.C
         self.Q: np.ndarray = process_noise
         self.R: np.ndarray = measurement_noise
         self.cov: np.ndarray = initial_covariance
@@ -45,10 +42,9 @@ class KalmanFilter:
         :param u: Control input
         """
         if u is None:
-            u = np.zeros((self.B.shape[1], 1))
+            u = np.zeros((self.state_space.B.shape[1], 1))
         self.x = self.state_space.step(x=self.x, u=u)
-
-        self.cov = self.A @ self.cov @ self.A.T + self.Q
+        self.cov = self.state_space.A @ self.cov @ self.state_space.A.T + self.Q
         self.cov = symmetrize_matrix(self.cov)
 
     def update(self, z: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -57,12 +53,11 @@ class KalmanFilter:
         :param z: Measurement
         :return: Updated state estimate and state covariance
         """
-        # print(self.cov_measurement)
-        y = z - self.C @ self.x  # Measurement residual
-        S = self.C @ self.cov @ self.C.T + self.R  # Innovation covariance
-        K = self.cov @ self.C.T @ np.linalg.inv(S)  # Kalman gain
+        y = z - self.state_space.C @ self.x
+        S = self.state_space.C @ self.cov @ self.state_space.C.T + self.R
+        K = self.cov @ self.state_space.C.T @ np.linalg.inv(S)
         self.x = self.x + K @ y
-        self.cov = (np.eye(self.cov.shape[0]) - K @ self.C) @ self.cov
+        self.cov = (np.eye(self.cov.shape[0]) - K @ self.state_space.C) @ self.cov
         self.cov = symmetrize_matrix(self.cov)
 
         return self.x.copy(), self.cov.copy()

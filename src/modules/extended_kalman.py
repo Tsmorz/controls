@@ -1,53 +1,16 @@
 """Basic docstring for my module."""
 
-from typing import Callable, Optional
+from typing import Optional
 
 import numpy as np
-from jax import grad
 from jax import numpy as jnp
 from loguru import logger
 
 from config.definitions import LOG_DECIMALS, MEASUREMENT_NOISE, PROCESS_NOISE
 from src.modules.math_utils import symmetrize_matrix
-from src.modules.state_space import (
-    StateSpace,
-)
+from src.modules.state_space import StateSpaceNonlinear
 
 jnp.set_printoptions(precision=LOG_DECIMALS)
-
-
-class StateSpaceNonlinear:
-    """A class for representing a nonlinear state-space model."""
-
-    def __init__(
-        self,
-        f: list[Callable],
-        h: Optional[list[Callable]] = None,
-    ):
-        """Initialize a nonlinear state space model."""
-        self.f = f
-        self.h = h
-
-    def linearize(self, x: np.ndarray) -> StateSpace:
-        """Linearize a list of callables.
-
-        :return: Jacobian matrix
-        """
-        jacobian = np.zeros((len(self.f), len(x)))
-        for ii, f in enumerate(self.f):
-            grad_f = grad(f, argnums=(0, 1, 2))
-            jacobian[ii, :] = grad_f(x[0, 0], x[1, 0], x[2, 0])
-        return StateSpace(A=jacobian, B=jacobian)
-
-    def step(self, x: np.ndarray, u: np.ndarray) -> np.ndarray:
-        """Step the state-space model by one step.
-
-        :param x: Current state
-        :param u: Control input
-        :return: Next state
-        """
-        ss = self.linearize(x=x)
-        return ss.A @ x + ss.B @ u
 
 
 class ExtendedKalmanFilter:

@@ -1,9 +1,10 @@
 """Basic docstring for my module."""
 
-from typing import Optional
+from typing import Callable, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
+from jax import grad
 from loguru import logger
 from scipy.signal import cont2discrete
 
@@ -274,9 +275,43 @@ def mass_spring_damper_model(
     return model
 
 
+class StateSpaceNonlinear:
+    """A class for representing a nonlinear state-space model."""
+
+    def __init__(
+        self,
+        f: list[Callable],
+        h: Optional[list[Callable]] = None,
+    ):
+        """Initialize a nonlinear state space model."""
+        self.f = f
+        self.h = h
+
+    def linearize(self, x: np.ndarray) -> StateSpace:
+        """Linearize a list of callables.
+
+        :return: Jacobian matrix
+        """
+        jacobian = np.zeros((len(self.f), len(x)))
+        for ii, f in enumerate(self.f):
+            grad_f = grad(f, argnums=(0, 1, 2))
+            jacobian[ii, :] = grad_f(x[0, 0], x[1, 0], x[2, 0])
+        return StateSpace(A=jacobian, B=jacobian)
+
+    def step(self, x: np.ndarray, u: np.ndarray) -> np.ndarray:
+        """Step the state-space model by one step.
+
+        :param x: Current state
+        :param u: Control input
+        :return: Next state
+        """
+        ss = self.linearize(x=x)
+        return ss.A @ x + ss.B @ u
+
+
 if __name__ == "__main__":  # pragma: no cover
     """Run the main program with this function."""
     dt = 0.05
-    ss = mass_spring_damper_model(discretization_dt=dt)
-    ss.step_response(delta_t=dt, plot_response=True)
-    ss.impulse_response(delta_t=dt, plot_response=True)
+    spd_ss = mass_spring_damper_model(discretization_dt=dt)
+    spd_ss.step_response(delta_t=dt, plot_response=True)
+    spd_ss.impulse_response(delta_t=dt, plot_response=True)
