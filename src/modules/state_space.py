@@ -246,7 +246,7 @@ class StateSpace:
         self.D = system_disc[3]
 
 
-def mass_spring_damper_model(
+def mass_spring_damper_discrete(
     mass: float = 0.5,
     spring_const: float = 20.0,
     damping: float = 0.4,
@@ -305,6 +305,6 @@ class StateSpaceNonlinear:
 if __name__ == "__main__":  # pragma: no cover
     """Run the main program with this function."""
     dt = 0.05
-    spd_ss = mass_spring_damper_model(discretization_dt=dt)
+    spd_ss = mass_spring_damper_discrete(discretization_dt=dt)
     spd_ss.step_response(delta_t=dt, plot_response=True)
     spd_ss.impulse_response(delta_t=dt, plot_response=True)

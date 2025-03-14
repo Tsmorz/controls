@@ -4,7 +4,7 @@ from config.definitions import DEFAULT_DT
 from src.data_classes.state_space_data import StateSpaceData
 from src.modules.state_space import (
     StateSpace,
-    mass_spring_damper_model,
+    mass_spring_damper_discrete,
 )
 
 
@@ -90,7 +90,7 @@ def test_step_response() -> None:
     """Test that the step response method works correctly."""
     # Arrange
     dt = 0.05
-    ss = mass_spring_damper_model(discretization_dt=dt)
+    ss = mass_spring_damper_discrete(discretization_dt=dt)
 
     # Act
     data = ss.step_response(dt, plot_response=False)
@@ -110,7 +110,7 @@ def test_impulse_response() -> None:
     """Test that the step response method works correctly."""
     # Arrange
     dt = 0.05
-    ss = mass_spring_damper_model(discretization_dt=dt)
+    ss = mass_spring_damper_discrete(discretization_dt=dt)
 
     # Act
     data = ss.impulse_response(dt, plot_response=False)

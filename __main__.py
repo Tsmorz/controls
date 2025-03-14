@@ -9,7 +9,7 @@ from config.definitions import MEASUREMENT_NOISE, PROCESS_NOISE
 from src.modules.controller import full_state_feedback, get_control_input
 from src.modules.kalman import KalmanFilter
 from src.modules.simulator import Simulator
-from src.modules.state_space import StateSpaceData, mass_spring_damper_model
+from src.modules.state_space import StateSpaceData, mass_spring_damper_discrete
 
 
 def main(dir_path: str) -> None:
@@ -17,7 +17,7 @@ def main(dir_path: str) -> None:
     logger.info(f"Path to directory: {dir_path}")
     dt = 0.05
     time = np.arange(0, 10, dt).tolist()
-    ss = mass_spring_damper_model(discretization_dt=dt)
+    ss = mass_spring_damper_discrete(discretization_dt=dt)
 
     # find the desired control gains
     desired_eigenvalues = np.array([0.89 + 0.29j, 0.89 - 0.29j])
