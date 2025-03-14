@@ -6,7 +6,7 @@ import numpy as np
 
 from src.modules.math_utils import symmetrize_matrix
 from src.modules.state_space import (
-    StateSpace,
+    StateSpaceLinear,
 )
 
 
@@ -15,7 +15,7 @@ class KalmanFilter:
 
     def __init__(
         self,
-        state_space: StateSpace,
+        state_space: StateSpaceLinear,
         process_noise: np.ndarray,
         measurement_noise: np.ndarray,
         initial_state: np.ndarray,

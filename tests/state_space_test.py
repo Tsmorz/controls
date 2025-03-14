@@ -3,7 +3,7 @@ import numpy as np
 from config.definitions import DEFAULT_DT
 from src.data_classes.state_space_data import StateSpaceData
 from src.modules.state_space import (
-    StateSpace,
+    StateSpaceLinear,
     mass_spring_damper_discrete,
 )
 
@@ -15,7 +15,7 @@ def test_state_space() -> None:
     B = np.array([[1], [0]])
 
     # Act
-    ss = StateSpace(A, B)
+    ss = StateSpaceLinear(A, B)
 
     # Assert
     np.testing.assert_array_almost_equal(ss.A, A)
@@ -32,7 +32,7 @@ def test_continuous_to_discrete() -> None:
     dt = DEFAULT_DT
 
     # Act
-    ss = StateSpace(A, B)
+    ss = StateSpaceLinear(A, B)
     ss.continuous_to_discrete(discretization_dt=dt)
 
     # Assert
@@ -62,7 +62,7 @@ def test_state_space_step() -> None:
     # Arrange
     A = np.array([[0, 1], [0, 0]])
     B = np.array([[0], [1]])
-    ss = StateSpace(A, B)
+    ss = StateSpaceLinear(A, B)
 
     x = np.array([0.1, 0.2])
     u = np.array([0.3])
@@ -83,7 +83,7 @@ def test_state_space_incorrect_dims() -> None:
 
     # Act and Assert
     with np.testing.assert_raises(ValueError):
-        StateSpace(A, B)
+        StateSpaceLinear(A, B)
 
 
 def test_step_response() -> None:

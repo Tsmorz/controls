@@ -11,7 +11,7 @@ from config.definitions import EPSILON
 from src.data_classes.state_space_data import StateSpaceData, plot_history
 
 
-class StateSpace:
+class StateSpaceLinear:
     """A discrete-time state-space model representation."""
 
     def __init__(
@@ -145,7 +145,7 @@ def mass_spring_damper_discrete(
     spring_const: float = 20.0,
     damping: float = 0.4,
     discretization_dt: float = 0.0,
-) -> StateSpace:  # pragma: no cover
+) -> StateSpaceLinear:  # pragma: no cover
     """Calculate a simple mass spring damper model.
 
     :param mass: Mass of the system
@@ -154,7 +154,7 @@ def mass_spring_damper_discrete(
     :param discretization_dt: Desired discrete time step size
     :return: state-space model
     """
-    model = StateSpace(
+    model = StateSpaceLinear(
         A=np.array([[0.0, 1.0], [-spring_const / mass, -damping / mass]]),
         B=np.array([[0.0], [1.0 / mass]]),
     )
@@ -174,7 +174,7 @@ class StateSpaceNonlinear:
         self.f = f
         self.h = h
 
-    def linearize(self, x: np.ndarray, u: np.ndarray) -> StateSpace:
+    def linearize(self, x: np.ndarray, u: np.ndarray) -> StateSpaceLinear:
         """Linearize a list of callables.
 
         :param x: Current state
@@ -184,13 +184,13 @@ class StateSpaceNonlinear:
         jacobian = np.zeros((len(self.f), len(x) + len(u)))
         for ii, func in enumerate(self.f):
             for jj, _s in enumerate(x):
-                jacobian[ii, jj] = self.partial_derivative(func=func, x=x, u=u, jj=jj)
+                jacobian[ii, jj] = self._partial_derivative(func=func, x=x, u=u, jj=jj)
         A = jacobian[:, : len(x)]
         B = jacobian[:, len(x) :]
-        return StateSpace(A, B)
+        return StateSpaceLinear(A, B)
 
     @staticmethod
-    def partial_derivative(
+    def _partial_derivative(
         func: Callable, x: np.ndarray, u: np.ndarray, jj: int
     ) -> np.ndarray:
         state_copy1, state_copy2 = copy.deepcopy(x), copy.deepcopy(x)

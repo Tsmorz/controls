@@ -7,10 +7,10 @@ from loguru import logger
 from scipy.signal import place_poles
 
 from config.definitions import DEFAULT_NUM_STEPS
-from src.modules.state_space import StateSpace
+from src.modules.state_space import StateSpaceLinear
 
 
-def full_state_feedback(state_space: StateSpace, desired_eigenvalues: np.ndarray):
+def full_state_feedback(state_space: StateSpaceLinear, desired_eigenvalues: np.ndarray):
     """Calculate the feedback gains for a desired response.
 
     :param state_space: State-space model
