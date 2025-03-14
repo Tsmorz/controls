@@ -58,7 +58,7 @@ lint.ignore = [
     "PLR0913",
     "D415",  # End first line with a period, question mark, or exclamation point
     "S101",  # Use of `assert` detected
-
+    "E203",  # whitespace before ':'
 ]
 
 # Automatically fix issues where possible
