@@ -2,13 +2,10 @@
 
 import numpy as np
 from jax import numpy as jnp
-from loguru import logger
 
 from config.definitions import (
     DEFAULT_CONTROL,
     LOG_DECIMALS,
-    MEASUREMENT_NOISE,
-    PROCESS_NOISE,
 )
 from src.modules.math_utils import symmetrize_matrix
 from src.modules.state_space import StateSpaceNonlinear
@@ -67,40 +64,3 @@ class ExtendedKalmanFilter:
         cov = (np.eye(self.cov.shape[0]) - K @ state_space.C) @ self.cov
         self.cov = symmetrize_matrix(cov)
         return self.x.copy(), self.cov.copy()
-
-
-if __name__ == "__main__":
-    """Test the EKF algorithm."""
-    logger.info("EKF pipeline started.")
-
-    def heading_func(state: np.ndarray, control: np.ndarray) -> jnp.ndarray:
-        """Find the heading given x1 and x2."""
-        pos_x, pos_y, theta = state
-        vel, theta_dot = control
-        return jnp.array(theta + theta_dot)
-
-    def pos_x_func(state: np.ndarray, control: np.ndarray) -> jnp.ndarray:
-        """Find the x velocity given x1 and x2."""
-        pos_x, pos_y, theta = state
-        vel, theta_dot = control
-        return vel * jnp.cos(theta) + pos_x
-
-    def pos_y_func(state: np.ndarray, control: np.ndarray) -> jnp.ndarray:
-        """Find the y velocity given x1 and x2."""
-        pos_x, pos_y, theta = state
-        vel, theta_dot = control
-        return vel * jnp.sin(theta) + pos_y
-
-    ss_nl = StateSpaceNonlinear(f=[heading_func, pos_x_func, pos_y_func])
-    ekf = ExtendedKalmanFilter(
-        state_space_nonlinear=ss_nl,
-        process_noise=PROCESS_NOISE * np.eye(3),
-        measurement_noise=MEASUREMENT_NOISE * np.eye(3),
-        initial_x=np.array([[0.0], [0.0], [0.0]]),
-        initial_covariance=5 * np.eye(3),
-    )
-    for _i in range(100):
-        ekf.predict(u=np.array([[0.0], [0.0]]))
-        ekf.update(z=np.array([[0.0], [0.0], [0.0]]))
-
-    logger.info("EKF pipeline complete.")
