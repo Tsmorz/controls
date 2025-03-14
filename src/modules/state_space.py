@@ -145,12 +145,12 @@ class StateSpaceNonlinear:
 
     def __init__(
         self,
-        f: list[Callable],
-        h: Optional[list[Callable]] = None,
+        motion_model: list[Callable],
+        measurement_model: Optional[list[Callable]] = None,
     ):
         """Initialize a nonlinear state space model."""
-        self.f = f
-        self.h = h
+        self.motion_model = motion_model
+        self.measurement_model = measurement_model
 
     def linearize(self, x: np.ndarray, u: np.ndarray) -> StateSpaceLinear:
         """Linearize a list of callables.
@@ -159,22 +159,38 @@ class StateSpaceNonlinear:
         :param u: Control input
         :return: Jacobian matrix
         """
-        jacobian = np.zeros((len(self.f), len(x) + len(u)))
-        for ii, func in enumerate(self.f):
-            for jj, _s in enumerate(x):
-                jacobian[ii, jj] = self._partial_derivative(func=func, x=x, u=u, jj=jj)
-        A = jacobian[:, : len(x)]
-        B = jacobian[:, len(x) :]
-        return StateSpaceLinear(A, B)
+        # linearize the motion model around the current state
+        dfdx = np.zeros((len(self.motion_model), len(x)))
+        for ii, func in enumerate(self.motion_model):
+            for jj in range(len(x)):
+                dfdx[ii, jj] = self._partial_derivative_x(func=func, x=x, u=u, jj=jj)
+
+        # linearize the motion model around the control input
+        dfdu = np.zeros((len(self.motion_model), len(u)))
+        for ii, func in enumerate(self.motion_model):
+            for jj in range(len(u)):
+                dfdu[ii, jj] = self._partial_derivative_x(func=func, x=x, u=u, jj=jj)
+
+        return StateSpaceLinear(A=dfdx, B=dfdu)
 
     @staticmethod
-    def _partial_derivative(
+    def _partial_derivative_x(
         func: Callable, x: np.ndarray, u: np.ndarray, jj: int
     ) -> np.ndarray:
         state_copy1, state_copy2 = copy.deepcopy(x), copy.deepcopy(x)
         state_copy1[jj, 0] -= EPSILON
         state_copy2[jj, 0] += EPSILON
         value = (func(state_copy2, u) - func(state_copy1, u)) / (2 * EPSILON)
+        return value[0]
+
+    @staticmethod
+    def _partial_derivative_u(
+        func: Callable, x: np.ndarray, u: np.ndarray, jj: int
+    ) -> np.ndarray:
+        control_copy1, control_copy2 = copy.deepcopy(u), copy.deepcopy(u)
+        control_copy1[jj, 0] -= EPSILON
+        control_copy2[jj, 0] += EPSILON
+        value = (func(x, control_copy2) - func(x, control_copy1)) / (2 * EPSILON)
         return value[0]
 
     def step(self, x: np.ndarray, u: np.ndarray) -> np.ndarray:

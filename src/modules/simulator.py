@@ -102,4 +102,15 @@ def robot_model() -> StateSpaceNonlinear:
         vel, theta_dot = control
         return vel * jnp.sin(theta) + pos_y
 
-    return StateSpaceNonlinear(f=[heading_func, pos_x_func, pos_y_func])
+    motion_model = [
+        heading_func,
+        pos_x_func,
+        pos_y_func,
+    ]
+    measurement_model = [
+        heading_func,
+        pos_x_func,
+    ]
+    return StateSpaceNonlinear(
+        motion_model=motion_model, measurement_model=measurement_model
+    )
