@@ -11,6 +11,7 @@ from src.modules.math_utils import symmetrize_matrix
 from src.modules.state_space import StateSpaceNonlinear
 
 jnp.set_printoptions(precision=LOG_DECIMALS)
+np.set_printoptions(precision=LOG_DECIMALS)
 
 
 class ExtendedKalmanFilter:
@@ -49,13 +50,14 @@ class ExtendedKalmanFilter:
         self.cov = state_space.A @ self.cov @ state_space.A.T + self.Q
         self.cov = symmetrize_matrix(self.cov)
 
-    def update(self, z: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    def update(self, z: np.ndarray, u: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Update the state estimate with measurement z.
 
         :param z: Measurement
+        :param u: Control input
         :return: Updated state estimate and state covariance
         """
-        state_space = self.ss_nl.linearize(self.x, u=DEFAULT_CONTROL)
+        state_space = self.ss_nl.linearize(self.x, u=u)
 
         y = z - state_space.C @ self.x  # Measurement residual
         S = state_space.C @ self.cov @ state_space.C.T + self.R  # Innovation covariance

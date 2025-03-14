@@ -91,24 +91,25 @@ def run_ekf_pipeline():
         state_space_nonlinear=robot,
         process_noise=PROCESS_NOISE * np.eye(3),
         measurement_noise=MEASUREMENT_NOISE * np.eye(3),
-        initial_x=np.array([[0.0], [0.0], [0.0]]),
+        initial_x=np.array([[0.0], [0.0], [0.5 * np.pi]]),
         initial_covariance=5 * np.eye(3),
     )
-    for _i in range(100):
-        ekf.predict(u=np.array([[0.0], [0.0]]))
-        ekf.update(z=np.array([[0.0], [0.0], [0.0]]))
+    for _i in range(1):
+        u = np.array([[1.0], [0.0 * np.pi]])
+        ekf.predict(u=u)
+        ekf.update(z=ekf.x, u=u)
 
 
-def main(pipeline_num: int) -> None:
+def main(pipeline_id: str) -> None:
     """Process which pipeline to run."""
-    if pipeline_num == Pipeline.KF.value:
+    if pipeline_id == Pipeline.KF.name:
         run_kf_pipeline()
-    elif pipeline_num == Pipeline.EKF.value:
+    elif pipeline_id == Pipeline.EKF.name:
         run_ekf_pipeline()
-    elif pipeline_num == Pipeline.STATE_SPACE.value:
+    elif pipeline_id == Pipeline.STATE_SPACE.name:
         run_state_space_pipeline()
     else:
-        msg = f"Invalid pipeline number: {pipeline_num}"
+        msg = f"Invalid pipeline number: {pipeline_id}"
         logger.error(msg)
         raise ValueError(msg)
 
@@ -122,9 +123,9 @@ if __name__ == "__main__":  # pragma: no cover
         "-p",
         "--pipeline",
         action="store",
-        type=int,
+        type=str,
         required=True,
         help="Choose which pipeline to run. (1, 2, 3, etc.)",
     )
     args = parser.parse_args()
-    main(pipeline_num=args.pipeline)
+    main(pipeline_id=args.pipeline)

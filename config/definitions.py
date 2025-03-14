@@ -20,7 +20,7 @@ DEFAULT_DT = 1.0
 DEFAULT_DISCRETIZATION = 0.05
 
 # Logger definitions
-LOG_DECIMALS = 3
+LOG_DECIMALS = 2
 LOG_LEVEL = "INFO"
 
 # Differentiation definitions

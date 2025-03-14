@@ -84,33 +84,28 @@ def mass_spring_damper_model(
 def robot_model() -> StateSpaceNonlinear:
     """Create a StateSpaceNonlinear model of a wheeled robot."""
 
+    def pos_x_func(state: np.ndarray, control: np.ndarray) -> jnp.ndarray:
+        """Find the x position given the state and control vectors."""
+        pos_x, pos_y, theta = state
+        vel, theta_dot = control
+        return vel * jnp.cos(theta + theta_dot) + pos_x
+
+    def pos_y_func(state: np.ndarray, control: np.ndarray) -> jnp.ndarray:
+        """Find the y position given the state and control vectors."""
+        pos_x, pos_y, theta = state
+        vel, theta_dot = control
+        return vel * jnp.sin(theta + theta_dot) + pos_y
+
     def heading_func(state: np.ndarray, control: np.ndarray) -> jnp.ndarray:
-        """Find the heading given x1 and x2."""
+        """Find the heading given the state and control vectors."""
         pos_x, pos_y, theta = state
         vel, theta_dot = control
         return jnp.array(theta + theta_dot)
 
-    def pos_x_func(state: np.ndarray, control: np.ndarray) -> jnp.ndarray:
-        """Find the x velocity given x1 and x2."""
-        pos_x, pos_y, theta = state
-        vel, theta_dot = control
-        return vel * jnp.cos(theta) + pos_x
-
-    def pos_y_func(state: np.ndarray, control: np.ndarray) -> jnp.ndarray:
-        """Find the y velocity given x1 and x2."""
-        pos_x, pos_y, theta = state
-        vel, theta_dot = control
-        return vel * jnp.sin(theta) + pos_y
-
     motion_model = [
-        heading_func,
         pos_x_func,
         pos_y_func,
-    ]
-    measurement_model = [
         heading_func,
-        pos_x_func,
     ]
-    return StateSpaceNonlinear(
-        motion_model=motion_model, measurement_model=measurement_model
-    )
+
+    return StateSpaceNonlinear(motion_model=motion_model)

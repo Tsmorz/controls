@@ -161,35 +161,39 @@ class StateSpaceNonlinear:
         """
         # linearize the motion model around the current state
         dfdx = np.zeros((len(self.motion_model), len(x)))
-        for ii, func in enumerate(self.motion_model):
-            for jj in range(len(x)):
-                dfdx[ii, jj] = self._partial_derivative_x(func=func, x=x, u=u, jj=jj)
+        for func_idx, func in enumerate(self.motion_model):
+            for x_idx in range(len(x)):
+                dfdx[func_idx, x_idx] = self._partial_derivative_x(
+                    func=func, x=x, u=u, idx=x_idx
+                )
 
         # linearize the motion model around the control input
         dfdu = np.zeros((len(self.motion_model), len(u)))
-        for ii, func in enumerate(self.motion_model):
-            for jj in range(len(u)):
-                dfdu[ii, jj] = self._partial_derivative_x(func=func, x=x, u=u, jj=jj)
+        for func_idx, func in enumerate(self.motion_model):
+            for u_idx in range(len(u)):
+                dfdu[func_idx, u_idx] = self._partial_derivative_u(
+                    func=func, x=x, u=u, idx=u_idx
+                )
 
         return StateSpaceLinear(A=dfdx, B=dfdu)
 
     @staticmethod
     def _partial_derivative_x(
-        func: Callable, x: np.ndarray, u: np.ndarray, jj: int
+        func: Callable, x: np.ndarray, u: np.ndarray, idx: int
     ) -> np.ndarray:
         state_copy1, state_copy2 = copy.deepcopy(x), copy.deepcopy(x)
-        state_copy1[jj, 0] -= EPSILON
-        state_copy2[jj, 0] += EPSILON
+        state_copy1[idx, 0] -= EPSILON
+        state_copy2[idx, 0] += EPSILON
         value = (func(state_copy2, u) - func(state_copy1, u)) / (2 * EPSILON)
         return value[0]
 
     @staticmethod
     def _partial_derivative_u(
-        func: Callable, x: np.ndarray, u: np.ndarray, jj: int
+        func: Callable, x: np.ndarray, u: np.ndarray, idx: int
     ) -> np.ndarray:
         control_copy1, control_copy2 = copy.deepcopy(u), copy.deepcopy(u)
-        control_copy1[jj, 0] -= EPSILON
-        control_copy2[jj, 0] += EPSILON
+        control_copy1[idx, 0] -= EPSILON
+        control_copy2[idx, 0] += EPSILON
         value = (func(x, control_copy2) - func(x, control_copy1)) / (2 * EPSILON)
         return value[0]
 
