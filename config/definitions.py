@@ -17,6 +17,7 @@ DEFAULT_CONTROL = np.array([[0.0], [0.0]])
 
 # State space definitions
 DEFAULT_DT = 1.0
+DEFAULT_DISCRETIZATION = 0.05
 
 # Logger definitions
 LOG_DECIMALS = 3

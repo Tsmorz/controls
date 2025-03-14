@@ -7,7 +7,7 @@ import numpy as np
 from loguru import logger
 from scipy.signal import cont2discrete
 
-from config.definitions import EPSILON
+from config.definitions import DEFAULT_DISCRETIZATION, EPSILON
 from src.data_classes.state_space_data import StateSpaceData, plot_history
 
 
@@ -144,7 +144,7 @@ def mass_spring_damper_discrete(
     mass: float = 0.5,
     spring_const: float = 20.0,
     damping: float = 0.4,
-    discretization_dt: float = 0.0,
+    discretization_dt: float = DEFAULT_DISCRETIZATION,
 ) -> StateSpaceLinear:  # pragma: no cover
     """Calculate a simple mass spring damper model.
 
@@ -212,7 +212,7 @@ class StateSpaceNonlinear:
 
 if __name__ == "__main__":  # pragma: no cover
     """Run the main program with this function."""
-    dt = 0.05
+    dt = DEFAULT_DISCRETIZATION
     ss_model = mass_spring_damper_discrete(discretization_dt=dt)
     ss_model.step_response(delta_t=dt, plot_response=True)
     ss_model.impulse_response(delta_t=dt, plot_response=True)
