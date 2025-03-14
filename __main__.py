@@ -1,11 +1,12 @@
 """Basic docstring for my module."""
 
 import argparse
+from enum import Enum, auto
 
 import numpy as np
 from loguru import logger
 
-from config.definitions import MEASUREMENT_NOISE, PROCESS_NOISE
+from config.definitions import DEFAULT_DISCRETIZATION, MEASUREMENT_NOISE, PROCESS_NOISE
 from src.data_classes.state_space_data import plot_history, plot_states
 from src.modules.controller import full_state_feedback, get_control_input
 from src.modules.kalman import KalmanFilter
@@ -13,10 +14,20 @@ from src.modules.simulator import Simulator
 from src.modules.state_space import StateSpaceData, mass_spring_damper_discrete
 
 
-def main(dir_path: str) -> None:
+class Pipeline(Enum):
+    """Create an enumerator to choose which pipeline to run."""
+
+    KF = auto()
+    EKF = auto()
+    EKF_SLAM = auto()
+    CONTROLLER = auto()
+
+
+def run_kf_pipeline() -> None:
     """Pipeline to run the repo code."""
-    logger.info(f"Path to directory: {dir_path}")
-    dt = 0.05
+    logger.info("Running Kalman Filter pipeline...")
+
+    dt = DEFAULT_DISCRETIZATION
     time = np.arange(0, 10, dt).tolist()
     ss = mass_spring_damper_discrete(discretization_dt=dt)
 
@@ -62,15 +73,24 @@ def main(dir_path: str) -> None:
     plot_states(history=sim_history)
 
 
+def main(pipeline_num: int) -> None:
+    """Process which pipeline to run."""
+    if pipeline_num == Pipeline.KF.value:
+        run_kf_pipeline()
+    else:
+        logger.error(f"Invalid pipeline number: {pipeline_num}")
+
+
 if __name__ == "__main__":  # pragma: no cover
     """Run the main program with this function."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-d",
-        "--dir",
+        "-p",
+        "--pipeline",
         action="store",
-        default=None,
-        help="Directory to process.",
+        type=int,
+        required=True,
+        help="Choose which pipeline to run. (1, 2, 3, etc.)",
     )
     args = parser.parse_args()
-    main(dir_path=args.dir)
+    main(pipeline_num=args.pipeline)
