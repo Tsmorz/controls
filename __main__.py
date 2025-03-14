@@ -6,6 +6,7 @@ import numpy as np
 from loguru import logger
 
 from config.definitions import MEASUREMENT_NOISE, PROCESS_NOISE
+from src.data_classes.state_space_data import plot_history, plot_states
 from src.modules.controller import full_state_feedback, get_control_input
 from src.modules.kalman import KalmanFilter
 from src.modules.simulator import Simulator
@@ -57,8 +58,8 @@ def main(dir_path: str) -> None:
         kf.predict(u=u)
         kf.update(z=measurement)
 
-    ss.plot_history(history=sim_history)
-    ss.plot_states(history=sim_history)
+    plot_history(history=sim_history)
+    plot_states(history=sim_history)
 
 
 if __name__ == "__main__":  # pragma: no cover

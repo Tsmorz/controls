@@ -1,0 +1,2 @@
+TEST_DT = 0.05
+TEST_ACCURACY = 1e-5

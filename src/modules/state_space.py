@@ -2,14 +2,12 @@
 
 from typing import Callable, Optional
 
-import matplotlib.pyplot as plt
 import numpy as np
 from jax import grad
 from loguru import logger
 from scipy.signal import cont2discrete
 
-from config.definitions import FIG_SIZE, LEGEND_LOC, PLOT_ALPHA, PLOT_MARKER_SIZE
-from src.data_classes.state_space_data import StateSpaceData
+from src.data_classes.state_space_data import StateSpaceData, plot_history
 
 
 class StateSpace:
@@ -79,7 +77,7 @@ class StateSpace:
         )
 
         if plot_response:  # pragma: no cover
-            self.plot_history(history=state_history, title="Step Response")
+            plot_history(history=state_history, title="Step Response")
 
         return state_history
 
@@ -107,7 +105,7 @@ class StateSpace:
         )
 
         if plot_response:  # pragma: no cover
-            self.plot_history(history=state_history, title="Impulse Response")
+            plot_history(history=state_history, title="Impulse Response")
 
         return state_history
 
@@ -127,113 +125,6 @@ class StateSpace:
             x = self.step(x=x, u=u)
             state_history.state.append(x)
         return state_history
-
-    @staticmethod
-    def _add_bounds(ax, data, sigma, history, state, color) -> None:
-        lower = data - 2.576 * sigma
-        upper = data + 2.576 * sigma
-        ax.fill_between(
-            history.time,
-            lower,
-            upper,
-            color=color,
-            alpha=0.5,
-            label=f"$x_{state} 99 C.I. $",
-        )
-
-    def plot_history(
-        self, history: StateSpaceData, title: str = "State Space History"
-    ) -> None:  # pragma: no cover
-        """Plot the history of state space model.
-
-        :param history: State history object
-        :param title: Plot title
-        :return: None
-        """
-        num_states = self.A.shape[0]
-        fig, axs = plt.subplots(2, 1, sharex=True, figsize=FIG_SIZE)
-        plt.suptitle(title)
-
-        for ii, ax in enumerate(axs):
-            for num_state in range(num_states):
-                data = np.array([arr[num_state] for arr in history.state]).flatten()
-
-                sigma = np.array(
-                    [arr[num_state, num_state] for arr in history.covariance]
-                )
-                if ii == 1:
-                    data /= np.amax(np.abs(data))
-
-                p = ax.plot(
-                    history.time, data, "--", label=f"$x_{num_state}$", alpha=PLOT_ALPHA
-                )
-                self._add_bounds(
-                    ax,
-                    data=data,
-                    sigma=sigma.flatten(),
-                    history=history,
-                    state=num_state,
-                    color=p[0].get_color(),
-                )
-                ax.set_ylabel("State" if ii == 0 else "Normalized State")
-
-                # plot the ground truth if it exists
-                if len(history.state_true) > 0:
-                    c = p[0].get_color()
-                    data = np.array(
-                        [arr[num_state] for arr in history.state_true]
-                    ).flatten()
-                    ax.plot(
-                        history.time,
-                        data,
-                        ".",
-                        label=f"$x_{num_state} (true)$",
-                        alpha=PLOT_ALPHA,
-                        color=c,
-                        markersize=PLOT_MARKER_SIZE,
-                    )
-            for u in range(history.control[0].shape[1]):
-                control = [arr[u] for arr in history.control]
-                if ii == 1:
-                    control /= np.amax(np.abs(control))
-                ax.step(history.time, control, label="control input", alpha=PLOT_ALPHA)
-
-        for ax in axs:
-            ax.set_xlabel("Time (s)")
-            ax.grid(True)
-            ax.legend(loc=LEGEND_LOC)
-            ax.set_xlim(min(history.time) - 0.5, max(history.time) + 0.5)
-
-        plt.show()
-        plt.close()
-
-    @staticmethod
-    def plot_states(
-        history: StateSpaceData, title: str = "State Space History"
-    ) -> None:  # pragma: no cover
-        """Plot the history of state space model.
-
-        :param history: State history object
-        :param title: Plot title
-        :return: None
-        """
-        fig, axs = plt.subplots(1, 1, sharex=True, figsize=FIG_SIZE)
-        plt.suptitle(title)
-
-        state_0 = np.array([arr[0] for arr in history.state])
-        state_1 = np.array([arr[1] for arr in history.state])
-        state_0, state_1 = state_0.flatten(), state_1.flatten()
-
-        axs.scatter(state_0, state_1, s=PLOT_MARKER_SIZE, label="$ x_1 vs x_2$")
-
-        axs.grid(True)
-        axs.set_aspect("equal")
-        axs.legend(loc=LEGEND_LOC)
-        axs.set_xlabel("$x_0$")
-        axs.set_ylabel("$x_1$")
-
-        plt.show()
-        plt.close()
 
     def continuous_to_discrete(self, discretization_dt) -> None:
         """Convert a continuous state space to discrete state space."""

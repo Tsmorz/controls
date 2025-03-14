@@ -3,12 +3,12 @@ import numpy as np
 from config.definitions import DEFAULT_VARIANCE
 from src.modules.kalman import KalmanFilter
 from src.modules.state_space import mass_spring_damper_discrete
+from tests.conftest import TEST_ACCURACY, TEST_DT
 
 
 def test_kalman_filter_initialization() -> None:
     """Test the initialization of the Kalman filter."""
-    dt = 0.05
-    ss = mass_spring_damper_discrete(discretization_dt=dt)
+    ss = mass_spring_damper_discrete(discretization_dt=TEST_DT)
 
     Q = DEFAULT_VARIANCE * np.eye(2)
     R = DEFAULT_VARIANCE * np.eye(1)
@@ -35,8 +35,7 @@ def test_kalman_filter_initialization() -> None:
 
 def test_kalman_filter_predict_with_control_input() -> None:
     """Test that the next state and covariance is predicted correctly."""
-    dt = 0.05
-    ss = mass_spring_damper_discrete(discretization_dt=dt)
+    ss = mass_spring_damper_discrete(discretization_dt=TEST_DT)
 
     Q = DEFAULT_VARIANCE * np.eye(2)
     R = DEFAULT_VARIANCE * np.eye(1)
@@ -57,5 +56,5 @@ def test_kalman_filter_predict_with_control_input() -> None:
 
     kf.predict()
 
-    assert np.allclose(kf.x, expected_next_state, atol=1e-5)
-    assert np.allclose(kf.cov, expected_next_covariance, atol=1e-5)
+    assert np.allclose(kf.x, expected_next_state, atol=TEST_ACCURACY)
+    assert np.allclose(kf.cov, expected_next_covariance, atol=TEST_ACCURACY)
