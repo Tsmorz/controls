@@ -3,10 +3,10 @@
 from typing import Optional
 
 import numpy as np
+from jax import numpy as jnp
 
-from src.modules.state_space import (
-    StateSpaceLinear,
-)
+from config.definitions import DEFAULT_DISCRETIZATION
+from src.modules.state_space import StateSpaceLinear, StateSpaceNonlinear
 
 
 class Simulator:
@@ -57,3 +57,49 @@ class Simulator:
         scale = np.reshape(scale, (self.R.shape[0], 1))
         noise = np.random.normal(loc=0.0, scale=scale, size=(self.C.shape[0], 1))
         return self.C @ self.x + noise
+
+
+def mass_spring_damper_model(
+    mass: float = 0.5,
+    spring_const: float = 20.0,
+    damping: float = 0.4,
+    discretization_dt: float = DEFAULT_DISCRETIZATION,
+) -> StateSpaceLinear:  # pragma: no cover
+    """Calculate a simple mass spring damper model.
+
+    :param mass: Mass of the system
+    :param spring_const: Spring constant
+    :param damping: Damping coefficient
+    :param discretization_dt: Desired discrete time step size
+    :return: state-space model
+    """
+    model = StateSpaceLinear(
+        A=np.array([[0.0, 1.0], [-spring_const / mass, -damping / mass]]),
+        B=np.array([[0.0], [1.0 / mass]]),
+    )
+    model.continuous_to_discrete(discretization_dt)
+    return model
+
+
+def robot_model() -> StateSpaceNonlinear:
+    """Create a StateSpaceNonlinear model of a wheeled robot."""
+
+    def heading_func(state: np.ndarray, control: np.ndarray) -> jnp.ndarray:
+        """Find the heading given x1 and x2."""
+        pos_x, pos_y, theta = state
+        vel, theta_dot = control
+        return jnp.array(theta + theta_dot)
+
+    def pos_x_func(state: np.ndarray, control: np.ndarray) -> jnp.ndarray:
+        """Find the x velocity given x1 and x2."""
+        pos_x, pos_y, theta = state
+        vel, theta_dot = control
+        return vel * jnp.cos(theta) + pos_x
+
+    def pos_y_func(state: np.ndarray, control: np.ndarray) -> jnp.ndarray:
+        """Find the y velocity given x1 and x2."""
+        pos_x, pos_y, theta = state
+        vel, theta_dot = control
+        return vel * jnp.sin(theta) + pos_y
+
+    return StateSpaceNonlinear(f=[heading_func, pos_x_func, pos_y_func])

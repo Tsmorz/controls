@@ -1,7 +1,7 @@
 import numpy as np
 
 from src.modules.controller import full_state_feedback, get_control_input
-from src.modules.state_space import mass_spring_damper_discrete
+from src.modules.simulator import mass_spring_damper_model
 
 
 def test_get_control_input() -> None:
@@ -22,7 +22,7 @@ def test_get_control_input() -> None:
 def test_full_state_feedback() -> None:
     """Test that the full state feedback is calculated correctly."""
     # Arrange
-    state_space = mass_spring_damper_discrete()
+    state_space = mass_spring_damper_model()
     desired_eigenvalues = np.array([1.0, 2.0])
 
     # Act

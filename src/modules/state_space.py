@@ -7,7 +7,7 @@ import numpy as np
 from loguru import logger
 from scipy.signal import cont2discrete
 
-from config.definitions import DEFAULT_DISCRETIZATION, EPSILON
+from config.definitions import EPSILON
 from src.data_classes.state_space_data import StateSpaceData, plot_history
 
 
@@ -140,28 +140,6 @@ class StateSpaceLinear:
         self.D = system_disc[3]
 
 
-def mass_spring_damper_discrete(
-    mass: float = 0.5,
-    spring_const: float = 20.0,
-    damping: float = 0.4,
-    discretization_dt: float = DEFAULT_DISCRETIZATION,
-) -> StateSpaceLinear:  # pragma: no cover
-    """Calculate a simple mass spring damper model.
-
-    :param mass: Mass of the system
-    :param spring_const: Spring constant
-    :param damping: Damping coefficient
-    :param discretization_dt: Desired discrete time step size
-    :return: state-space model
-    """
-    model = StateSpaceLinear(
-        A=np.array([[0.0, 1.0], [-spring_const / mass, -damping / mass]]),
-        B=np.array([[0.0], [1.0 / mass]]),
-    )
-    model.continuous_to_discrete(discretization_dt)
-    return model
-
-
 class StateSpaceNonlinear:
     """A class for representing a nonlinear state-space model."""
 
@@ -209,13 +187,6 @@ class StateSpaceNonlinear:
         ss = self.linearize(x=x, u=u)
         return ss.A @ x + ss.B @ u
 
-
-if __name__ == "__main__":  # pragma: no cover
-    """Run the main program with this function."""
-    dt = DEFAULT_DISCRETIZATION
-    ss_model = mass_spring_damper_discrete(discretization_dt=dt)
-    ss_model.step_response(delta_t=dt, plot_response=True)
-    ss_model.impulse_response(delta_t=dt, plot_response=True)
 
 # April 1 - April 16
 # April 22 - April 30

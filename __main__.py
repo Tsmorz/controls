@@ -7,11 +7,11 @@ import numpy as np
 from loguru import logger
 
 from config.definitions import DEFAULT_DISCRETIZATION, MEASUREMENT_NOISE, PROCESS_NOISE
-from src.data_classes.state_space_data import plot_history, plot_states
+from src.data_classes.state_space_data import StateSpaceData, plot_history, plot_states
 from src.modules.controller import full_state_feedback, get_control_input
+from src.modules.extended_kalman import ExtendedKalmanFilter
 from src.modules.kalman import KalmanFilter
-from src.modules.simulator import Simulator
-from src.modules.state_space import StateSpaceData, mass_spring_damper_discrete
+from src.modules.simulator import Simulator, mass_spring_damper_model, robot_model
 
 
 class Pipeline(Enum):
@@ -21,6 +21,15 @@ class Pipeline(Enum):
     EKF = auto()
     EKF_SLAM = auto()
     CONTROLLER = auto()
+    STATE_SPACE = auto()
+
+
+def run_state_space_pipeline() -> None:
+    """Run the main program with this function."""
+    dt = DEFAULT_DISCRETIZATION
+    ss_model = mass_spring_damper_model(discretization_dt=dt)
+    ss_model.step_response(delta_t=dt, plot_response=True)
+    ss_model.impulse_response(delta_t=dt, plot_response=True)
 
 
 def run_kf_pipeline() -> None:
@@ -29,7 +38,7 @@ def run_kf_pipeline() -> None:
 
     dt = DEFAULT_DISCRETIZATION
     time = np.arange(0, 10, dt).tolist()
-    ss = mass_spring_damper_discrete(discretization_dt=dt)
+    ss = mass_spring_damper_model(discretization_dt=dt)
 
     # find the desired control gains
     desired_eigenvalues = np.array([0.89 + 0.29j, 0.89 - 0.29j])
@@ -73,12 +82,37 @@ def run_kf_pipeline() -> None:
     plot_states(history=sim_history)
 
 
+def run_ekf_pipeline():
+    """Test the EKF algorithm."""
+    logger.info("Running Extended Kalman Filter pipeline.")
+
+    robot = robot_model()
+    ekf = ExtendedKalmanFilter(
+        state_space_nonlinear=robot,
+        process_noise=PROCESS_NOISE * np.eye(3),
+        measurement_noise=MEASUREMENT_NOISE * np.eye(3),
+        initial_x=np.array([[0.0], [0.0], [0.0]]),
+        initial_covariance=5 * np.eye(3),
+    )
+    for _i in range(100):
+        ekf.predict(u=np.array([[0.0], [0.0]]))
+        ekf.update(z=np.array([[0.0], [0.0], [0.0]]))
+
+
 def main(pipeline_num: int) -> None:
     """Process which pipeline to run."""
     if pipeline_num == Pipeline.KF.value:
         run_kf_pipeline()
+    elif pipeline_num == Pipeline.EKF.value:
+        run_ekf_pipeline()
+    elif pipeline_num == Pipeline.STATE_SPACE.value:
+        run_state_space_pipeline()
     else:
-        logger.error(f"Invalid pipeline number: {pipeline_num}")
+        msg = f"Invalid pipeline number: {pipeline_num}"
+        logger.error(msg)
+        raise ValueError(msg)
+
+    logger.info("Program complete.")
 
 
 if __name__ == "__main__":  # pragma: no cover
