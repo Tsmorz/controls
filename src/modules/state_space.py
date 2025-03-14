@@ -1,12 +1,13 @@
 """Basic docstring for my module."""
 
+import copy
 from typing import Callable, Optional
 
 import numpy as np
-from jax import grad
 from loguru import logger
 from scipy.signal import cont2discrete
 
+from config.definitions import EPSILON
 from src.data_classes.state_space_data import StateSpaceData, plot_history
 
 
@@ -16,7 +17,7 @@ class StateSpace:
     def __init__(
         self,
         A: np.ndarray,
-        B: np.ndarray,
+        B: Optional[np.ndarray] = None,
         C: Optional[np.ndarray] = None,
         D: Optional[np.ndarray] = None,
     ):
@@ -27,6 +28,8 @@ class StateSpace:
         :param C: Observation matrix
         :param D: Direct transmission matrix
         """
+        if B is None:
+            B = np.zeros((A.shape[0], 1))
         if A.shape[0] != B.shape[0]:
             msg = (
                 f"A and B matrices must have the same number of rows. "
@@ -171,16 +174,30 @@ class StateSpaceNonlinear:
         self.f = f
         self.h = h
 
-    def linearize(self, x: np.ndarray) -> StateSpace:
+    def linearize(self, x: np.ndarray, u: np.ndarray) -> StateSpace:
         """Linearize a list of callables.
 
+        :param x: Current state
+        :param u: Control input
         :return: Jacobian matrix
         """
-        jacobian = np.zeros((len(self.f), len(x)))
-        for ii, f in enumerate(self.f):
-            grad_f = grad(f, argnums=(0, 1, 2))
-            jacobian[ii, :] = grad_f(x[0, 0], x[1, 0], x[2, 0])
-        return StateSpace(A=jacobian, B=jacobian)
+        jacobian = np.zeros((len(self.f), len(x) + len(u)))
+        for ii, func in enumerate(self.f):
+            for jj, _s in enumerate(x):
+                jacobian[ii, jj] = self.partial_derivative(func=func, x=x, u=u, jj=jj)
+        A = jacobian[:, : len(x)]
+        B = jacobian[:, len(x) :]
+        return StateSpace(A, B)
+
+    @staticmethod
+    def partial_derivative(
+        func: Callable, x: np.ndarray, u: np.ndarray, jj: int
+    ) -> np.ndarray:
+        state_copy1, state_copy2 = copy.deepcopy(x), copy.deepcopy(x)
+        state_copy1[jj, 0] -= EPSILON
+        state_copy2[jj, 0] += EPSILON
+        value = (func(state_copy2, u) - func(state_copy1, u)) / (2 * EPSILON)
+        return value[0]
 
     def step(self, x: np.ndarray, u: np.ndarray) -> np.ndarray:
         """Step the state-space model by one step.
@@ -189,13 +206,17 @@ class StateSpaceNonlinear:
         :param u: Control input
         :return: Next state
         """
-        ss = self.linearize(x=x)
+        ss = self.linearize(x=x, u=u)
         return ss.A @ x + ss.B @ u
 
 
 if __name__ == "__main__":  # pragma: no cover
     """Run the main program with this function."""
     dt = 0.05
-    spd_ss = mass_spring_damper_discrete(discretization_dt=dt)
-    spd_ss.step_response(delta_t=dt, plot_response=True)
-    spd_ss.impulse_response(delta_t=dt, plot_response=True)
+    ss_model = mass_spring_damper_discrete(discretization_dt=dt)
+    ss_model.step_response(delta_t=dt, plot_response=True)
+    ss_model.impulse_response(delta_t=dt, plot_response=True)
+
+# April 1 - April 16
+# April 22 - April 30
+# May 9 - May 18

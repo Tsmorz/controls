@@ -1,5 +1,7 @@
 """Basic docstring for my module."""
 
+import numpy as np
+
 # plot definitions
 FIG_SIZE = (12, 7)
 LEGEND_LOC = "upper right"
@@ -11,6 +13,7 @@ PLOT_MARKER_SIZE = 3
 DEFAULT_VARIANCE = 1e-2
 PROCESS_NOISE = 1e-2
 MEASUREMENT_NOISE = 5.0
+DEFAULT_CONTROL = np.array([[0.0], [0.0]])
 
 # State space definitions
 DEFAULT_DT = 1.0
@@ -18,3 +21,6 @@ DEFAULT_DT = 1.0
 # Logger definitions
 LOG_DECIMALS = 3
 LOG_LEVEL = "INFO"
+
+# Differentiation definitions
+EPSILON = 1e-3
