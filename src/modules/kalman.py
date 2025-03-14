@@ -47,7 +47,7 @@ class KalmanFilter:
         self.cov = self.state_space.A @ self.cov @ self.state_space.A.T + self.Q
         self.cov = symmetrize_matrix(self.cov)
 
-    def update(self, z: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    def update(self, z: np.ndarray) -> None:
         """Update the state estimate with measurement z.
 
         :param z: Measurement
@@ -59,5 +59,3 @@ class KalmanFilter:
         self.x = self.x + K @ y
         self.cov = (np.eye(self.cov.shape[0]) - K @ self.state_space.C) @ self.cov
         self.cov = symmetrize_matrix(self.cov)
-
-        return self.x.copy(), self.cov.copy()
