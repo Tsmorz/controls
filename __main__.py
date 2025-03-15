@@ -106,12 +106,18 @@ def run_ekf_pipeline():
     plt.ylim(-10, 10)
     plt.axis("equal")
     steps = 10
-    for _i in range(2 * steps):
-        vel = 1.0
-        omega = 2 * np.pi / steps
-        u = np.array([[vel], [omega]])
+    vel = 1.0
+    omega = 2 * np.pi / steps
+    for _i in range(5 * steps):
+        u = np.array(
+            [
+                [vel + np.random.normal(0, scale=PROCESS_NOISE)],
+                [omega + np.random.normal(0, scale=PROCESS_NOISE)],
+            ]
+        )
         ekf.predict(u=u)
         ekf.update(z=ekf.x, u=u)
+
         pose = Pose2D(
             x=ekf.x[0, 0],
             y=ekf.x[1, 0],
