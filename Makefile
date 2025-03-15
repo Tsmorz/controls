@@ -10,7 +10,7 @@ test:
 format:
 	ruff format
 	ruff check --fix
-	poetry run mypy src/ tests/ __main__.py --ignore-missing-imports
+	poetry run mypy src/ tests/ --ignore-missing-imports
 
 clean:
 	rm -rf .venv
