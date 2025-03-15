@@ -46,7 +46,7 @@ class ExtendedKalmanFilter:
         """
         state_space = self.ss_nl.linearize(self.x, u)
 
-        self.x = state_space.step(x=self.x, u=u)
+        self.x = self.ss_nl.step(x=self.x, u=u)
         self.cov = state_space.A @ self.cov @ state_space.A.T + self.Q
         self.cov = symmetrize_matrix(self.cov)
 

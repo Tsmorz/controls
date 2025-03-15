@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from config.definitions import DEFAULT_DT
-from src.data_classes.state_space_data import StateSpaceData
+from src.data_classes.state_space import StateSpaceData
 from src.modules.simulator import mass_spring_damper_model, robot_model
 from src.modules.state_space import StateSpaceLinear, StateSpaceNonlinear
 from tests.conftest import TEST_DECIMALS_ACCURACY

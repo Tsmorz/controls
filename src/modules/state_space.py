@@ -8,7 +8,7 @@ from loguru import logger
 from scipy.signal import cont2discrete
 
 from config.definitions import EPSILON
-from src.data_classes.state_space_data import StateSpaceData, plot_history
+from src.data_classes.state_space import StateSpaceData, plot_history
 
 
 class StateSpaceLinear:
@@ -208,8 +208,10 @@ class StateSpaceNonlinear:
         :param u: Control input
         :return: Next state
         """
-        ss = self.linearize(x=x, u=u)
-        return ss.A @ x + ss.B @ u
+        x_new = np.zeros_like(x)
+        for ii, func in enumerate(self.motion_model):
+            x_new[ii, 0] = func(x, u)[0]
+        return x_new
 
 
 # April 1 - April 16

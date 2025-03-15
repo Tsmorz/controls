@@ -7,7 +7,7 @@ import numpy as np
 from loguru import logger
 
 from config.definitions import DEFAULT_DISCRETIZATION, MEASUREMENT_NOISE, PROCESS_NOISE
-from src.data_classes.state_space_data import StateSpaceData, plot_history, plot_states
+from src.data_classes.state_space import StateSpaceData, plot_history, plot_states
 from src.modules.controller import full_state_feedback, get_control_input
 from src.modules.extended_kalman import ExtendedKalmanFilter
 from src.modules.kalman import KalmanFilter
@@ -91,14 +91,14 @@ def run_ekf_pipeline():
         state_space_nonlinear=robot,
         process_noise=PROCESS_NOISE * np.eye(3),
         measurement_noise=MEASUREMENT_NOISE * np.eye(3),
-        initial_x=np.array([[0.0], [0.0], [0.0 * np.pi]]),
+        initial_x=np.array([[0.0], [0.0], [0.5 * np.pi]]),
         initial_covariance=5 * np.eye(3),
     )
     for _i in range(1):
-        u = np.array([[1.0], [0.0 * np.pi]])
+        u = np.array([[0.0], [0.5 * np.pi]])
         ekf.predict(u=u)
         ekf.update(z=ekf.x, u=u)
-    logger.info(ekf.x)
+    logger.info(f"x:\n{ekf.x}")
 
 
 def main(pipeline_id: str) -> None:
