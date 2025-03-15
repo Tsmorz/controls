@@ -5,6 +5,7 @@ from typing import Optional
 import numpy as np
 
 from config.definitions import DEFAULT_DISCRETIZATION
+from src.data_classes.map import Feature
 from src.modules.state_space import StateSpaceLinear, StateSpaceNonlinear
 
 
@@ -104,27 +105,76 @@ def robot_model() -> StateSpaceNonlinear:
         heading_func,
     ]
 
-    def measure_x_func(state_control: np.ndarray) -> np.ndarray:
+    def measure_range_func(state_control: np.ndarray, feature: Feature) -> np.ndarray:
         """Find the x position given the state and control vectors."""
-        pos_x, _, _, _, _ = state_control
-        return pos_x
+        pos_x, pos_y, _, _, _ = state_control
+        delta_x = feature.x - pos_x
+        delta_y = feature.y - pos_y
+        distance = np.sqrt(delta_x**2 + delta_y**2)
+        return distance
 
-    def measure_y_func(state_control: np.ndarray) -> np.ndarray:
+    def measure_angle_func(state_control: np.ndarray, feature: Feature) -> np.ndarray:
         """Find the y position given the state and control vectors."""
-        _, pos_y, _, _, _ = state_control
-        return pos_y
-
-    def measure_heading_func(state_control: np.ndarray) -> np.ndarray:
-        """Find the heading given the state and control vectors."""
-        _, _, theta, _, _ = state_control
-        return theta
+        pos_x, pos_y, theta, _, _ = state_control
+        delta_x = feature.x - pos_x
+        delta_y = feature.y - pos_y
+        angle = np.arctan(delta_y / delta_x) - theta
+        return angle
 
     measurement_model = [
-        measure_x_func,
-        measure_y_func,
-        measure_heading_func,
+        measure_range_func,
+        measure_angle_func,
     ]
 
     return StateSpaceNonlinear(
         motion_model=motion_model, measurement_model=measurement_model
     )
+
+
+class RobotSimulator:
+    """Kalman filter implementation."""
+
+    def __init__(
+        self,
+        state_space_nl: StateSpaceNonlinear,
+        process_noise: np.ndarray,
+        measurement_noise: np.ndarray,
+        initial_state: np.ndarray,
+    ) -> None:
+        """Initialize the Kalman Filter.
+
+        :param state_space_nl: linear state space model
+        :param process_noise: Process noise covariance
+        :param measurement_noise: Measurement noise covariance
+        :param initial_state: Initial state estimate
+        :return: None
+        """
+        self.state_space_nl = state_space_nl
+        self.Q: np.ndarray = process_noise
+        self.R: np.ndarray = measurement_noise
+        self.x: np.ndarray = initial_state
+
+    def step(self, u: np.ndarray) -> np.ndarray:
+        """Predict the next state and error covariance.
+
+        :param u: Control input
+        """
+        scale = np.diag(self.Q)
+        scale = np.reshape(scale, (self.Q.shape[0], 1))
+        noise = np.random.normal(loc=0.0, scale=scale, size=(len(self.x), 1))
+        self.x = self.state_space_nl.step(x=self.x, u=u) + noise
+        return self.x
+
+    def get_measurement(self, feature: Feature) -> np.ndarray:
+        """Calculate the range distance measurement between a pose and a feature.
+
+        :param feature: Feature in the map
+        :return: Range distance measurement
+        """
+        delta_x = feature.x - self.x[0, 0]
+        delta_y = feature.y - self.x[1, 0]
+        distance = np.sqrt(delta_x**2 + delta_y**2)
+
+        angle = np.arctan(delta_y / delta_x) - self.x[2, 0]
+
+        return np.array([[distance], [angle]])

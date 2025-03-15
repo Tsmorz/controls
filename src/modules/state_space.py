@@ -1,7 +1,7 @@
 """Basic docstring for my module."""
 
 import copy
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 import numpy as np
 from loguru import logger
@@ -152,39 +152,51 @@ class StateSpaceNonlinear:
         self.motion_model = motion_model
         self.measurement_model = measurement_model
 
-    def linearize(self, x: np.ndarray, u: np.ndarray) -> StateSpaceLinear:
+    def linearize(
+        self,
+        model: list[Callable],
+        x: np.ndarray,
+        u: np.ndarray,
+        other_args: Optional[Any] = None,
+    ) -> tuple[np.ndarray, np.ndarray]:
         """Linearize a list of callables.
 
+        :param model: List of callables representing the model to linearize
         :param x: Current state
         :param u: Control input
+        :param other_args: Additional arguments (e.g., map of features)
         :return: Jacobian matrix
         """
         xu = np.vstack((x, u))
 
         # linearize the motion model around the current state
-        df = np.zeros((len(self.motion_model), len(xu)))
-        for fun_idx, fun in enumerate(self.motion_model):
+        jacobian = np.zeros((len(model), len(xu)))
+        for fun_idx, fun in enumerate(model):
             for xu_idx in range(len(xu)):
-                df[fun_idx, xu_idx] = self._derivative(fun=fun, x=xu, x_idx=xu_idx)
-        dfdx = df[:, : len(x)]
-        dfdu = df[:, len(x) :]
+                jacobian[fun_idx, xu_idx] = self._derivative(
+                    fun=fun, x=xu, x_idx=xu_idx, other_args=other_args
+                )
+        jacobian_x = jacobian[:, : len(x)]
+        jacobian_u = jacobian[:, len(x) :]
 
-        # linearize the measurement model around the control input
-        dh = np.zeros((len(self.measurement_model), len(xu)))
-        for fun_idx, fun in enumerate(self.measurement_model):
-            for xu_idx in range(len(xu)):
-                dh[fun_idx, xu_idx] = self._derivative(fun=fun, x=xu, x_idx=xu_idx)
-        dhdx = dh[:, : len(x)]
-        dhdu = dh[:, len(x) :]
-
-        return StateSpaceLinear(A=dfdx, B=dfdu, C=dhdx, D=dhdu)
+        return jacobian_x, jacobian_u
 
     @staticmethod
-    def _derivative(fun: Callable, x: np.ndarray, x_idx: int) -> np.ndarray | float:
+    def _derivative(
+        fun: Callable,
+        x: np.ndarray,
+        x_idx: int,
+        other_args: Optional[Any] = None,
+    ) -> np.ndarray | float:
         x_copy1, x_copy2 = copy.copy(x), copy.copy(x)
         x_copy1[x_idx, 0] = x_copy1[x_idx, 0] - EPSILON
         x_copy2[x_idx, 0] = x_copy2[x_idx, 0] + EPSILON
-        value = (fun(x_copy2) - fun(x_copy1)) / (2 * EPSILON)
+        if other_args is None:
+            value = (fun(x_copy2) - fun(x_copy1)) / (2 * EPSILON)
+        else:
+            value = (fun(x_copy2, other_args) - fun(x_copy1, other_args)) / (
+                2 * EPSILON
+            )
 
         if isinstance(value, float):
             return value
@@ -203,7 +215,9 @@ class StateSpaceNonlinear:
             x_new[ii, 0] = func(xu)[0]
         return x_new
 
-    def predict_z(self, x: np.ndarray, u: np.ndarray) -> np.ndarray:
+    def predict_z(
+        self, x: np.ndarray, u: np.ndarray, other_args: Optional[Any] = None
+    ) -> np.ndarray:
         """Step the state-space model by one step.
 
         :param x: Current state
@@ -212,8 +226,12 @@ class StateSpaceNonlinear:
         """
         z_pred = np.zeros((len(self.measurement_model), 1))
         xu = np.vstack((x, u))
-        for ii, func in enumerate(self.measurement_model):
-            z_pred[ii, 0] = func(xu)[0]
+        if other_args is None:
+            for ii, func in enumerate(self.measurement_model):
+                z_pred[ii, 0] = func(xu)[0]
+        else:
+            for ii, func in enumerate(self.measurement_model):
+                z_pred[ii, 0] = func(xu, other_args)[0]
         return z_pred
 
 

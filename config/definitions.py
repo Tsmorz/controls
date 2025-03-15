@@ -11,8 +11,8 @@ PLOT_MARKER_SIZE = 3
 
 # Kalman filter definitions
 DEFAULT_VARIANCE = 1e-2
-PROCESS_NOISE = 1e-2
-MEASUREMENT_NOISE = 5.0
+PROCESS_NOISE = 5e-2
+MEASUREMENT_NOISE = 1e-2
 DEFAULT_CONTROL = np.array([[0.0], [0.0]])
 
 # State space definitions

@@ -140,7 +140,8 @@ def test_state_space_nonlinear() -> None:
     )
 
     state = np.array([[3.0], [2.0]])
-    state_space = state_space_nl.linearize(x=state, u=np.zeros((2, 1)))
+    A, B = state_space_nl.linearize(model=motion_model, x=state, u=np.zeros((2, 1)))
+    state_space = StateSpaceLinear(A, B)
 
     exp_A = np.array([[2 * state[0, 0], 1]])
     np.testing.assert_array_almost_equal(
@@ -168,7 +169,8 @@ def test_state_space_nonlinear_robot_model(vel: float, theta: float) -> None:
     u = np.array([[vel], [0.0]])
 
     # Act
-    state_space = robot.linearize(x=pose.as_vector(), u=u)
+    A, B = robot.linearize(model=robot.motion_model, x=pose.as_vector(), u=u)
+    state_space = StateSpaceLinear(A, B)
 
     # Assert
     exp_A = np.array(
