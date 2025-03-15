@@ -1,6 +1,7 @@
 """Add a doc string to my files."""
 
 from dataclasses import dataclass
+from typing import Optional
 
 import numpy as np
 
@@ -12,6 +13,7 @@ class Pose2D:
     x: float | np.ndarray
     y: float | np.ndarray
     theta: float | np.ndarray
+    covariance: Optional[np.ndarray] = None
 
     def __str__(self):
         """Return a string representation of the pose."""

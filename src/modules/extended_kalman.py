@@ -4,11 +4,7 @@ from typing import Any, Optional
 
 import numpy as np
 
-from config.definitions import (
-    DEFAULT_CONTROL,
-)
-from src.data_classes.map import Feature
-from src.data_classes.pose import Pose2D
+from config.definitions import DEFAULT_CONTROL, MEASUREMENT_NOISE, PROCESS_NOISE
 from src.modules.math_utils import symmetrize_matrix
 from src.modules.state_space import StateSpaceLinear, StateSpaceNonlinear
 
@@ -19,23 +15,34 @@ class ExtendedKalmanFilter:
     def __init__(
         self,
         state_space_nonlinear: StateSpaceNonlinear,
-        process_noise: np.ndarray,
-        measurement_noise: np.ndarray,
         initial_x: np.ndarray,
         initial_covariance: np.ndarray,
+        process_noise: Optional[np.ndarray] = None,
+        measurement_noise: Optional[np.ndarray] = None,
     ) -> None:
         """Initialize the Extended Kalman Filter.
 
         :param state_space_nonlinear: nonlinear state space model
-        :param process_noise: Process noise covariance
-        :param measurement_noise: Measurement noise covariance
         :param initial_x: Initial state estimate
         :param initial_covariance: Initial error covariance
+        :param process_noise: Process noise covariance
+        :param measurement_noise: Measurement noise covariance
         :return: None
         """
         self.state_space_nl = state_space_nonlinear
+
+        if process_noise is None:
+            process_noise = PROCESS_NOISE * np.eye(
+                len(state_space_nonlinear.motion_model)
+            )
         self.Q: np.ndarray = process_noise
+
+        if measurement_noise is None:
+            measurement_noise = MEASUREMENT_NOISE * np.eye(
+                len(state_space_nonlinear.measurement_model)
+            )
         self.R: np.ndarray = measurement_noise
+
         self.x: np.ndarray = initial_x
         self.cov: np.ndarray = initial_covariance
 
@@ -82,19 +89,3 @@ class ExtendedKalmanFilter:
         self.x = self.x + K @ y
         cov = (np.eye(self.cov.shape[0]) - K @ state_space.C) @ self.cov
         self.cov = symmetrize_matrix(cov)
-
-
-def get_range_distance_measurement(pose: Pose2D, feature: Feature) -> np.ndarray:
-    """Calculate the range distance measurement between a pose and a feature.
-
-    :param pose: Pose of the robot
-    :param feature: Feature in the map
-    :return: Range distance measurement
-    """
-    delta_x = feature.x - pose.x
-    delta_y = feature.y - pose.y
-    distance = np.sqrt(delta_x**2 + delta_y**2)
-
-    angle = np.arctan(delta_y / delta_x) - pose.theta
-
-    return np.array([[distance], [angle]])

@@ -4,10 +4,9 @@ from typing import Optional
 
 import numpy as np
 
+from config.definitions import MEASUREMENT_NOISE, PROCESS_NOISE
 from src.modules.math_utils import symmetrize_matrix
-from src.modules.state_space import (
-    StateSpaceLinear,
-)
+from src.modules.state_space import StateSpaceLinear
 
 
 class KalmanFilter:
@@ -16,22 +15,27 @@ class KalmanFilter:
     def __init__(
         self,
         state_space: StateSpaceLinear,
-        process_noise: np.ndarray,
-        measurement_noise: np.ndarray,
         initial_x: np.ndarray,
         initial_covariance: np.ndarray,
+        process_noise: Optional[np.ndarray] = None,
+        measurement_noise: Optional[np.ndarray] = None,
     ) -> None:
         """Initialize the Kalman Filter.
 
         :param state_space: linear state space model
-        :param process_noise: Process noise covariance
-        :param measurement_noise: Measurement noise covariance
         :param initial_x: Initial state estimate
         :param initial_covariance: Initial error covariance
+        :param process_noise: Process noise covariance
+        :param measurement_noise: Measurement noise covariance
         :return: None
         """
         self.state_space = state_space
+        if process_noise is None:
+            process_noise = PROCESS_NOISE * np.eye(len(state_space.A))
         self.Q: np.ndarray = process_noise
+
+        if measurement_noise is None:
+            measurement_noise = MEASUREMENT_NOISE * np.eye(len(state_space.B))
         self.R: np.ndarray = measurement_noise
         self.x: np.ndarray = initial_x
         self.cov: np.ndarray = initial_covariance

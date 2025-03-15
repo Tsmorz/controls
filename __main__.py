@@ -3,26 +3,21 @@
 import argparse
 from enum import Enum, auto
 
-import matplotlib.pyplot as plt
 import numpy as np
 from loguru import logger
 
 from config.definitions import (
     DEFAULT_DISCRETIZATION,
-    MEASUREMENT_NOISE,
-    PROCESS_NOISE,
 )
-from src.data_classes.map import Feature
+from src.data_classes.map import Feature, Map
 from src.data_classes.pose import Pose2D
 from src.data_classes.state_space import StateSpaceData, plot_history
 from src.modules.controller import full_state_feedback, get_control_input
-from src.modules.extended_kalman import (
-    ExtendedKalmanFilter,
-)
+from src.modules.extended_kalman import ExtendedKalmanFilter
 from src.modules.kalman import KalmanFilter
 from src.modules.simulator import (
-    RobotSimulator,
-    Simulator,
+    KalmanSimulator,
+    SlamSimulator,
     mass_spring_damper_model,
     robot_model,
 )
@@ -62,13 +57,11 @@ def run_kf_pipeline() -> None:
     # initialize the kalman filter
     kf = KalmanFilter(
         state_space=ss,
-        process_noise=PROCESS_NOISE * np.eye(2),
-        measurement_noise=MEASUREMENT_NOISE * np.eye(2),
         initial_x=np.array([[5.0], [5.0]]),
         initial_covariance=5 * np.eye(2),
     )
 
-    sim = Simulator(
+    sim = KalmanSimulator(
         state_space=ss,
         process_noise=kf.Q,
         measurement_noise=kf.R,
@@ -103,43 +96,33 @@ def run_ekf_pipeline():
     initial_pose = Pose2D(x=0.0, y=0.0, theta=np.pi / 2)
     ekf = ExtendedKalmanFilter(
         state_space_nonlinear=robot,
-        process_noise=PROCESS_NOISE * np.eye(3),
-        measurement_noise=MEASUREMENT_NOISE * np.eye(2),
         initial_x=initial_pose.as_vector(),
         initial_covariance=3 * np.eye(3),
     )
 
-    sim = RobotSimulator(
+    sim = SlamSimulator(
         state_space_nl=robot,
         process_noise=ekf.Q,
         measurement_noise=ekf.R,
-        initial_state=ekf.x,
+        initial_pose=initial_pose,
     )
-    plt.figure(figsize=(8, 8))
-    plt.xlim(-10, 10)
-    plt.ylim(-10, 10)
-    plt.axis("equal")
-    plt.grid(True)
-    plt.xlabel("x position")
-    plt.ylabel("y position")
 
     steps = 100
     vel = 0.5
-    omega = 0.3 * np.pi / steps
+    omega = 0.5 * np.pi / steps
+
+    sim_map = Map()
+    sim_map.append_feature(Feature(x=-10.0, y=1.0, id=0))
+    sim_map.append_feature(Feature(x=10.0, y=1.0, id=1))
+
     for step in range(steps):
-        noise = np.random.normal(0, scale=PROCESS_NOISE)
-        u = np.array([[vel + noise], [omega + noise]])
+        u = np.array([[vel], [omega]])
         sim.step(u=u)
         ekf.predict(u=u)
 
         t = step / 10
-        if t % 2 == 0:
-            features = [
-                Feature(x=-25.0, y=1.0, id=0),
-                Feature(x=25.0, y=1.0, id=1),
-                Feature(x=0.0, y=40.0, id=1),
-            ]
-            for feature in features:
+        if t % 1 == 0:
+            for feature in sim_map.features:
                 measurement = sim.get_measurement(feature)
                 ekf.update(z=measurement, u=u, other_args=feature)
 
@@ -148,32 +131,8 @@ def run_ekf_pipeline():
             y=ekf.x[1, 0],
             theta=ekf.x[2, 0] % (2 * np.pi),
         )
-        pose_true = Pose2D(
-            x=sim.x[0, 0],
-            y=sim.x[1, 0],
-            theta=sim.x[2, 0] % (2 * np.pi),
-        )
-        plt.plot([pose_true.x, pose.x], [pose_true.y, pose.y], "k--")
-        logger.info(f"{pose}, {pose_true}")
-        plt.arrow(
-            x=pose.x,
-            y=pose.y,
-            dx=0.1 * np.cos(pose.theta),
-            dy=0.1 * np.sin(pose.theta),
-            width=0.01,
-            color="blue",
-        )
-        plt.arrow(
-            x=pose_true.x,
-            y=pose_true.y,
-            dx=0.1 * np.cos(pose_true.theta),
-            dy=0.1 * np.sin(pose_true.theta),
-            width=0.01,
-            color="red",
-        )
-        plt.draw()
-    plt.show()
-    plt.close()
+        sim.append_estimate(pose)
+    sim.plot_results()
 
 
 def main(pipeline_id: str) -> None:
