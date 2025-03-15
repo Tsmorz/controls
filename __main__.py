@@ -109,12 +109,8 @@ def run_ekf_pipeline():
     vel = 1.0
     omega = 2 * np.pi / steps
     for _i in range(5 * steps):
-        u = np.array(
-            [
-                [vel + np.random.normal(0, scale=PROCESS_NOISE)],
-                [omega + np.random.normal(0, scale=PROCESS_NOISE)],
-            ]
-        )
+        noise = np.random.normal(0, scale=PROCESS_NOISE)
+        u = np.array([[vel + noise], [omega + noise]])
         ekf.predict(u=u)
         ekf.update(z=ekf.x, u=u)
 

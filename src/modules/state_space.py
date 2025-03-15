@@ -159,63 +159,33 @@ class StateSpaceNonlinear:
         :param u: Control input
         :return: Jacobian matrix
         """
+        xu = np.vstack((x, u))
+
         # linearize the motion model around the current state
-        eqns = self.motion_model
-        dfdx = np.zeros((len(eqns), len(x)))
-        for func_idx, func in enumerate(eqns):
-            for x_idx in range(len(x)):
-                dfdx[func_idx, x_idx] = self._partial_derivative_x(
-                    func=func, x=x, u=u, x_idx=x_idx
-                )
-
-        # linearize the motion model around the control input
-        dfdu = np.zeros((len(self.motion_model), len(u)))
-        for func_idx, func in enumerate(self.motion_model):
-            for u_idx in range(len(u)):
-                dfdu[func_idx, u_idx] = self._partial_derivative_u(
-                    func=func, x=x, u=u, u_idx=u_idx
-                )
+        df = np.zeros((len(self.motion_model), len(xu)))
+        for fun_idx, fun in enumerate(self.motion_model):
+            for xu_idx in range(len(xu)):
+                df[fun_idx, xu_idx] = self._derivative(fun=fun, x=xu, x_idx=xu_idx)
+        dfdx = df[:, : len(x)]
+        dfdu = df[:, len(x) :]
 
         # linearize the measurement model around the control input
-        eqns = self.measurement_model
-        dhdx = np.zeros((len(eqns), len(x)))
-        for func_idx, func in enumerate(eqns):
-            for x_idx in range(len(x)):
-                dhdx[func_idx, x_idx] = self._partial_derivative_x(
-                    func=func, x=x, u=u, x_idx=x_idx
-                )
+        dh = np.zeros((len(self.measurement_model), len(xu)))
+        for fun_idx, fun in enumerate(self.measurement_model):
+            for xu_idx in range(len(xu)):
+                dh[fun_idx, xu_idx] = self._derivative(fun=fun, x=xu, x_idx=xu_idx)
+        dhdx = dh[:, : len(x)]
+        dhdu = dh[:, len(x) :]
 
-        # linearize the measurement model around the control input
-        dhdu = np.zeros((len(self.measurement_model), len(u)))
-        for func_idx, func in enumerate(self.measurement_model):
-            for u_idx in range(len(u)):
-                dhdu[func_idx, u_idx] = self._partial_derivative_u(
-                    func=func, x=x, u=u, u_idx=u_idx
-                )
-        state_space = StateSpaceLinear(A=dfdx, B=dfdu, C=dhdx, D=dhdu)
-        return state_space
+        return StateSpaceLinear(A=dfdx, B=dfdu, C=dhdx, D=dhdu)
 
     @staticmethod
-    def _partial_derivative_x(
-        func: Callable, x: np.ndarray, u: np.ndarray, x_idx: int
-    ) -> np.ndarray | float:
-        state_copy1, state_copy2 = copy.copy(x), copy.copy(x)
-        state_copy1[x_idx, 0] = state_copy1[x_idx, 0] - EPSILON
-        state_copy2[x_idx, 0] = state_copy2[x_idx, 0] + EPSILON
-        value = (func(state_copy2, u) - func(state_copy1, u)) / (2 * EPSILON)
+    def _derivative(fun: Callable, x: np.ndarray, x_idx: int) -> np.ndarray | float:
+        x_copy1, x_copy2 = copy.copy(x), copy.copy(x)
+        x_copy1[x_idx, 0] = x_copy1[x_idx, 0] - EPSILON
+        x_copy2[x_idx, 0] = x_copy2[x_idx, 0] + EPSILON
+        value = (fun(x_copy2) - fun(x_copy1)) / (2 * EPSILON)
 
-        if isinstance(value, float):
-            return value
-        return value[0]
-
-    @staticmethod
-    def _partial_derivative_u(
-        func: Callable, x: np.ndarray, u: np.ndarray, u_idx: int
-    ) -> np.ndarray | float:
-        control_copy1, control_copy2 = copy.copy(u), copy.copy(u)
-        control_copy1[u_idx, 0] = control_copy1[u_idx, 0] - EPSILON
-        control_copy2[u_idx, 0] = control_copy2[u_idx, 0] + EPSILON
-        value = (func(x, control_copy2) - func(x, control_copy1)) / (2 * EPSILON)
         if isinstance(value, float):
             return value
         return value[0]
@@ -228,8 +198,9 @@ class StateSpaceNonlinear:
         :return: Next state
         """
         x_new = np.zeros_like(x)
+        xu = np.vstack((x, u))
         for ii, func in enumerate(self.motion_model):
-            x_new[ii, 0] = func(x, u)[0]
+            x_new[ii, 0] = func(xu)[0]
         return x_new
 
     def predict_z(self, x: np.ndarray, u: np.ndarray) -> np.ndarray:
@@ -240,8 +211,9 @@ class StateSpaceNonlinear:
         :return: Next state
         """
         z_pred = np.zeros((len(self.measurement_model), 1))
+        xu = np.vstack((x, u))
         for ii, func in enumerate(self.measurement_model):
-            z_pred[ii, 0] = func(x, u)[0]
+            z_pred[ii, 0] = func(xu)[0]
         return z_pred
 
 

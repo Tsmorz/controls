@@ -83,22 +83,19 @@ def mass_spring_damper_model(
 def robot_model() -> StateSpaceNonlinear:
     """Create a StateSpaceNonlinear model of a wheeled robot."""
 
-    def pos_x_func(state: np.ndarray, control: np.ndarray) -> np.ndarray:
+    def pos_x_func(state_control: np.ndarray) -> np.ndarray:
         """Find the x position given the state and control vectors."""
-        pos_x, pos_y, theta = state
-        vel, theta_dot = control
+        pos_x, _, theta, vel, _ = state_control
         return vel * np.cos(theta) + pos_x
 
-    def pos_y_func(state: np.ndarray, control: np.ndarray) -> np.ndarray:
+    def pos_y_func(state_control: np.ndarray) -> np.ndarray:
         """Find the y position given the state and control vectors."""
-        pos_x, pos_y, theta = state
-        vel, theta_dot = control
+        _, pos_y, theta, vel, _ = state_control
         return vel * np.sin(theta) + pos_y
 
-    def heading_func(state: np.ndarray, control: np.ndarray) -> np.ndarray:
+    def heading_func(state_control: np.ndarray) -> np.ndarray:
         """Find the heading given the state and control vectors."""
-        pos_x, pos_y, theta = state
-        vel, theta_dot = control
+        _, _, theta, vel, theta_dot = state_control
         return np.array(theta + theta_dot)
 
     motion_model = [
@@ -107,22 +104,19 @@ def robot_model() -> StateSpaceNonlinear:
         heading_func,
     ]
 
-    def measure_x_func(state: np.ndarray, control: np.ndarray) -> np.ndarray:
+    def measure_x_func(state_control: np.ndarray) -> np.ndarray:
         """Find the x position given the state and control vectors."""
-        pos_x, pos_y, theta = state
-        vel, theta_dot = control
+        pos_x, _, _, _, _ = state_control
         return pos_x
 
-    def measure_y_func(state: np.ndarray, control: np.ndarray) -> np.ndarray:
+    def measure_y_func(state_control: np.ndarray) -> np.ndarray:
         """Find the y position given the state and control vectors."""
-        pos_x, pos_y, theta = state
-        vel, theta_dot = control
+        _, pos_y, _, _, _ = state_control
         return pos_y
 
-    def measure_heading_func(state: np.ndarray, control: np.ndarray) -> np.ndarray:
+    def measure_heading_func(state_control: np.ndarray) -> np.ndarray:
         """Find the heading given the state and control vectors."""
-        pos_x, pos_y, theta = state
-        vel, theta_dot = control
+        _, _, theta, _, _ = state_control
         return theta
 
     measurement_model = [

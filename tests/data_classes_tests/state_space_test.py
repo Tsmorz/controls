@@ -130,8 +130,8 @@ def test_impulse_response() -> None:
 def test_state_space_nonlinear() -> None:
     """Test the initialization of the Kalman filter."""
 
-    def test_func(x: np.ndarray, u: np.ndarray) -> np.ndarray:
-        return x[0, 0] ** 2 + x[1, 0]
+    def test_func(xu: np.ndarray) -> np.ndarray:
+        return xu[0, 0] ** 2 + xu[1, 0]
 
     motion_model = [test_func]
     measurement_model = [test_func]
