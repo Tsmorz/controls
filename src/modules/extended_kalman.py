@@ -1,17 +1,12 @@
 """Basic docstring for my module."""
 
 import numpy as np
-from jax import numpy as jnp
 
 from config.definitions import (
     DEFAULT_CONTROL,
-    LOG_DECIMALS,
 )
 from src.modules.math_utils import symmetrize_matrix
 from src.modules.state_space import StateSpaceNonlinear
-
-jnp.set_printoptions(precision=LOG_DECIMALS)
-np.set_printoptions(precision=LOG_DECIMALS)
 
 
 class ExtendedKalmanFilter:

@@ -3,7 +3,6 @@
 from typing import Optional
 
 import numpy as np
-from jax import numpy as jnp
 
 from config.definitions import DEFAULT_DISCRETIZATION
 from src.modules.state_space import StateSpaceLinear, StateSpaceNonlinear
@@ -84,23 +83,23 @@ def mass_spring_damper_model(
 def robot_model() -> StateSpaceNonlinear:
     """Create a StateSpaceNonlinear model of a wheeled robot."""
 
-    def pos_x_func(state: np.ndarray, control: np.ndarray) -> jnp.ndarray:
+    def pos_x_func(state: np.ndarray, control: np.ndarray) -> np.ndarray:
         """Find the x position given the state and control vectors."""
         pos_x, pos_y, theta = state
         vel, theta_dot = control
-        return vel * jnp.cos(theta) + pos_x
+        return vel * np.cos(theta) + pos_x
 
-    def pos_y_func(state: np.ndarray, control: np.ndarray) -> jnp.ndarray:
+    def pos_y_func(state: np.ndarray, control: np.ndarray) -> np.ndarray:
         """Find the y position given the state and control vectors."""
         pos_x, pos_y, theta = state
         vel, theta_dot = control
-        return vel * jnp.sin(theta) + pos_y
+        return vel * np.sin(theta) + pos_y
 
-    def heading_func(state: np.ndarray, control: np.ndarray) -> jnp.ndarray:
+    def heading_func(state: np.ndarray, control: np.ndarray) -> np.ndarray:
         """Find the heading given the state and control vectors."""
         pos_x, pos_y, theta = state
         vel, theta_dot = control
-        return jnp.array(theta + theta_dot)
+        return np.array(theta + theta_dot)
 
     motion_model = [
         pos_x_func,
@@ -108,19 +107,19 @@ def robot_model() -> StateSpaceNonlinear:
         heading_func,
     ]
 
-    def measure_x_func(state: np.ndarray, control: np.ndarray) -> jnp.ndarray:
+    def measure_x_func(state: np.ndarray, control: np.ndarray) -> np.ndarray:
         """Find the x position given the state and control vectors."""
         pos_x, pos_y, theta = state
         vel, theta_dot = control
         return pos_x
 
-    def measure_y_func(state: np.ndarray, control: np.ndarray) -> jnp.ndarray:
+    def measure_y_func(state: np.ndarray, control: np.ndarray) -> np.ndarray:
         """Find the y position given the state and control vectors."""
         pos_x, pos_y, theta = state
         vel, theta_dot = control
         return pos_y
 
-    def measure_heading_func(state: np.ndarray, control: np.ndarray) -> jnp.ndarray:
+    def measure_heading_func(state: np.ndarray, control: np.ndarray) -> np.ndarray:
         """Find the heading given the state and control vectors."""
         pos_x, pos_y, theta = state
         vel, theta_dot = control
