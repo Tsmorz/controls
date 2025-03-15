@@ -117,7 +117,7 @@ def run_ekf_pipeline():
             y=ekf.x[1, 0],
             theta=ekf.x[2, 0] % (2 * np.pi),
         )
-        logger.info(f"x:\n{pose}")
+        logger.info(pose)
         plt.arrow(
             x=pose.x,
             y=pose.y,

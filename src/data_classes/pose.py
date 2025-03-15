@@ -13,6 +13,10 @@ class Pose2D:
     y: float | np.ndarray
     theta: float | np.ndarray
 
+    def __str__(self):
+        """Return a string representation of the pose."""
+        return f"Pose2D(x:{self.x:.2f}, y:{self.y:.2f}, theta:{self.theta:.2f})"
+
     def as_vector(self) -> np.ndarray:
         return np.array([[self.x], [self.y], [self.theta]])
 
