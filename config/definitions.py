@@ -20,11 +20,11 @@ DEFAULT_DT = 1.0
 DEFAULT_DISCRETIZATION = 0.05
 
 # Logger definitions
-LOG_DECIMALS = 2
+LOG_DECIMALS = 3
 LOG_LEVEL = "INFO"
 
 # Differentiation definitions
-EPSILON = 1e-3
+EPSILON = 1e-5
 
 # Map definitions
 MAP_NUM_FEATURES = 100

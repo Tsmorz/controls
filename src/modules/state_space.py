@@ -174,27 +174,31 @@ class StateSpaceNonlinear:
                 dfdu[func_idx, u_idx] = self._partial_derivative_u(
                     func=func, x=x, u=u, idx=u_idx
                 )
-
         return StateSpaceLinear(A=dfdx, B=dfdu)
 
     @staticmethod
     def _partial_derivative_x(
         func: Callable, x: np.ndarray, u: np.ndarray, idx: int
-    ) -> np.ndarray:
+    ) -> np.ndarray | float:
         state_copy1, state_copy2 = copy.deepcopy(x), copy.deepcopy(x)
-        state_copy1[idx, 0] -= EPSILON
-        state_copy2[idx, 0] += EPSILON
+        state_copy1[idx, 0] = state_copy1[idx, 0] - EPSILON
+        state_copy2[idx, 0] = state_copy2[idx, 0] + EPSILON
         value = (func(state_copy2, u) - func(state_copy1, u)) / (2 * EPSILON)
+
+        if isinstance(value, float):
+            return value
         return value[0]
 
     @staticmethod
     def _partial_derivative_u(
         func: Callable, x: np.ndarray, u: np.ndarray, idx: int
-    ) -> np.ndarray:
+    ) -> np.ndarray | float:
         control_copy1, control_copy2 = copy.deepcopy(u), copy.deepcopy(u)
         control_copy1[idx, 0] -= EPSILON
         control_copy2[idx, 0] += EPSILON
         value = (func(x, control_copy2) - func(x, control_copy1)) / (2 * EPSILON)
+        if isinstance(value, float):
+            return value
         return value[0]
 
     def step(self, x: np.ndarray, u: np.ndarray) -> np.ndarray:

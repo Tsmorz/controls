@@ -88,13 +88,13 @@ def robot_model() -> StateSpaceNonlinear:
         """Find the x position given the state and control vectors."""
         pos_x, pos_y, theta = state
         vel, theta_dot = control
-        return vel * jnp.cos(theta + theta_dot) + pos_x
+        return vel * jnp.cos(theta) + pos_x
 
     def pos_y_func(state: np.ndarray, control: np.ndarray) -> jnp.ndarray:
         """Find the y position given the state and control vectors."""
         pos_x, pos_y, theta = state
         vel, theta_dot = control
-        return vel * jnp.sin(theta + theta_dot) + pos_y
+        return vel * jnp.sin(theta) + pos_y
 
     def heading_func(state: np.ndarray, control: np.ndarray) -> jnp.ndarray:
         """Find the heading given the state and control vectors."""

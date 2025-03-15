@@ -91,13 +91,14 @@ def run_ekf_pipeline():
         state_space_nonlinear=robot,
         process_noise=PROCESS_NOISE * np.eye(3),
         measurement_noise=MEASUREMENT_NOISE * np.eye(3),
-        initial_x=np.array([[0.0], [0.0], [0.5 * np.pi]]),
+        initial_x=np.array([[0.0], [0.0], [0.0 * np.pi]]),
         initial_covariance=5 * np.eye(3),
     )
     for _i in range(1):
         u = np.array([[1.0], [0.0 * np.pi]])
         ekf.predict(u=u)
         ekf.update(z=ekf.x, u=u)
+    logger.info(ekf.x)
 
 
 def main(pipeline_id: str) -> None:

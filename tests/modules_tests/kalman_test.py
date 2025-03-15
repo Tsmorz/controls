@@ -3,7 +3,7 @@ import numpy as np
 from config.definitions import DEFAULT_VARIANCE
 from src.modules.kalman import KalmanFilter
 from src.modules.simulator import mass_spring_damper_model
-from tests.conftest import TEST_ACCURACY, TEST_DT
+from tests.conftest import TEST_DECIMALS_ACCURACY, TEST_DT
 
 
 def test_kalman_filter_initialization() -> None:
@@ -56,5 +56,5 @@ def test_kalman_filter_predict_with_control_input() -> None:
 
     kf.predict()
 
-    assert np.allclose(kf.x, expected_next_state, atol=TEST_ACCURACY)
-    assert np.allclose(kf.cov, expected_next_covariance, atol=TEST_ACCURACY)
+    assert np.allclose(kf.x, expected_next_state, atol=TEST_DECIMALS_ACCURACY)
+    assert np.allclose(kf.cov, expected_next_covariance, atol=TEST_DECIMALS_ACCURACY)
