@@ -24,7 +24,7 @@ LOG_DECIMALS = 3
 LOG_LEVEL = "INFO"
 
 # Differentiation definitions
-EPSILON = 1e-5
+EPSILON = 1e-3
 
 # Map definitions
 MAP_NUM_FEATURES = 100

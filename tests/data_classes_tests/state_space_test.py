@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from config.definitions import DEFAULT_DT
+from src.data_classes.pose import Pose2D
 from src.data_classes.state_space import StateSpaceData
 from src.modules.simulator import mass_spring_damper_model, robot_model
 from src.modules.state_space import StateSpaceLinear, StateSpaceNonlinear
@@ -150,47 +151,41 @@ def test_state_space_nonlinear() -> None:
 @pytest.mark.parametrize(
     ("vel", "theta"),
     [
+        (-0.5, -0.5),
+        (-1.0, -1.0),
+        (-1.5, -1.5),
         (0.0, 0.0),
+        (0.5, 0.5),
         (1.0, 1.0),
-        (5.0, 5.0),
+        (1.5, 1.5),
     ],
 )
 def test_state_space_nonlinear_robot_model(vel: float, theta: float) -> None:
     """Test the initialization of the Kalman filter."""
     # Arrange
     robot = robot_model()
-    state = np.array(
-        [
-            [0.0],
-            [0.0],
-            [theta],
-        ]
-    )
-    u = np.array(
-        [
-            [vel],
-            [0.0],
-        ]
-    )
+    pose = Pose2D(x=0.0, y=0.0, theta=theta)
+    u = np.array([[vel], [0.0]])
 
     # Act
-    state_space = robot.linearize(x=state, u=u)
+    state_space = robot.linearize(x=pose.as_vector(), u=u)
 
     # Assert
     exp_A = np.array(
         [
-            [1.0, 0.0, -vel * np.sin(theta)],
-            [0.0, 1.0, vel * np.cos(theta)],
+            [1.0, 0.0, -u[0, 0] * np.sin(pose.theta + u[1, 0])],
+            [0.0, 1.0, u[0, 0] * np.cos(pose.theta + u[1, 0])],
             [0.0, 0.0, 1.0],
         ]
     )
     exp_B = np.array(
         [
-            [np.cos(theta), 0.0],
-            [np.sin(theta), 0.0],
+            [np.cos(pose.theta), 0.0],
+            [np.sin(pose.theta), 0.0],
             [0.0, 1.0],
         ]
     )
+
     np.testing.assert_array_almost_equal(
         state_space.A, exp_A, decimal=TEST_DECIMALS_ACCURACY
     )

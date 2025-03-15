@@ -160,11 +160,12 @@ class StateSpaceNonlinear:
         :return: Jacobian matrix
         """
         # linearize the motion model around the current state
-        dfdx = np.zeros((len(self.motion_model), len(x)))
-        for func_idx, func in enumerate(self.motion_model):
+        eqns = self.motion_model
+        dfdx = np.zeros((len(eqns), len(x)))
+        for func_idx, func in enumerate(eqns):
             for x_idx in range(len(x)):
                 dfdx[func_idx, x_idx] = self._partial_derivative_x(
-                    func=func, x=x, u=u, idx=x_idx
+                    func=func, x=x, u=u, x_idx=x_idx
                 )
 
         # linearize the motion model around the control input
@@ -172,34 +173,35 @@ class StateSpaceNonlinear:
         for func_idx, func in enumerate(self.motion_model):
             for u_idx in range(len(u)):
                 dfdu[func_idx, u_idx] = self._partial_derivative_u(
-                    func=func, x=x, u=u, idx=u_idx
+                    func=func, x=x, u=u, u_idx=u_idx
                 )
 
         # linearize the measurement model around the control input
-        dhdx = np.zeros((len(self.measurement_model), len(x)))
-        for func_idx, func in enumerate(self.measurement_model):
+        eqns = self.measurement_model
+        dhdx = np.zeros((len(eqns), len(x)))
+        for func_idx, func in enumerate(eqns):
             for x_idx in range(len(x)):
-                dfdx[func_idx, x_idx] = self._partial_derivative_x(
-                    func=func, x=x, u=u, idx=x_idx
+                dhdx[func_idx, x_idx] = self._partial_derivative_x(
+                    func=func, x=x, u=u, x_idx=x_idx
                 )
 
         # linearize the measurement model around the control input
         dhdu = np.zeros((len(self.measurement_model), len(u)))
         for func_idx, func in enumerate(self.measurement_model):
             for u_idx in range(len(u)):
-                dfdu[func_idx, u_idx] = self._partial_derivative_u(
-                    func=func, x=x, u=u, idx=u_idx
+                dhdu[func_idx, u_idx] = self._partial_derivative_u(
+                    func=func, x=x, u=u, u_idx=u_idx
                 )
         state_space = StateSpaceLinear(A=dfdx, B=dfdu, C=dhdx, D=dhdu)
         return state_space
 
     @staticmethod
     def _partial_derivative_x(
-        func: Callable, x: np.ndarray, u: np.ndarray, idx: int
+        func: Callable, x: np.ndarray, u: np.ndarray, x_idx: int
     ) -> np.ndarray | float:
-        state_copy1, state_copy2 = copy.deepcopy(x), copy.deepcopy(x)
-        state_copy1[idx, 0] = state_copy1[idx, 0] - EPSILON
-        state_copy2[idx, 0] = state_copy2[idx, 0] + EPSILON
+        state_copy1, state_copy2 = copy.copy(x), copy.copy(x)
+        state_copy1[x_idx, 0] = state_copy1[x_idx, 0] - EPSILON
+        state_copy2[x_idx, 0] = state_copy2[x_idx, 0] + EPSILON
         value = (func(state_copy2, u) - func(state_copy1, u)) / (2 * EPSILON)
 
         if isinstance(value, float):
@@ -208,11 +210,11 @@ class StateSpaceNonlinear:
 
     @staticmethod
     def _partial_derivative_u(
-        func: Callable, x: np.ndarray, u: np.ndarray, idx: int
+        func: Callable, x: np.ndarray, u: np.ndarray, u_idx: int
     ) -> np.ndarray | float:
-        control_copy1, control_copy2 = copy.deepcopy(u), copy.deepcopy(u)
-        control_copy1[idx, 0] -= EPSILON
-        control_copy2[idx, 0] += EPSILON
+        control_copy1, control_copy2 = copy.copy(u), copy.copy(u)
+        control_copy1[u_idx, 0] = control_copy1[u_idx, 0] - EPSILON
+        control_copy2[u_idx, 0] = control_copy2[u_idx, 0] + EPSILON
         value = (func(x, control_copy2) - func(x, control_copy1)) / (2 * EPSILON)
         if isinstance(value, float):
             return value
