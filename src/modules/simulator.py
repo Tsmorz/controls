@@ -108,4 +108,30 @@ def robot_model() -> StateSpaceNonlinear:
         heading_func,
     ]
 
-    return StateSpaceNonlinear(motion_model=motion_model)
+    def measure_x_func(state: np.ndarray, control: np.ndarray) -> jnp.ndarray:
+        """Find the x position given the state and control vectors."""
+        pos_x, pos_y, theta = state
+        vel, theta_dot = control
+        return pos_x
+
+    def measure_y_func(state: np.ndarray, control: np.ndarray) -> jnp.ndarray:
+        """Find the y position given the state and control vectors."""
+        pos_x, pos_y, theta = state
+        vel, theta_dot = control
+        return pos_y
+
+    def measure_heading_func(state: np.ndarray, control: np.ndarray) -> jnp.ndarray:
+        """Find the heading given the state and control vectors."""
+        pos_x, pos_y, theta = state
+        vel, theta_dot = control
+        return theta
+
+    measurement_model = [
+        measure_x_func,
+        measure_y_func,
+        measure_heading_func,
+    ]
+
+    return StateSpaceNonlinear(
+        motion_model=motion_model, measurement_model=measurement_model
+    )

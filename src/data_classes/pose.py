@@ -9,9 +9,12 @@ import numpy as np
 class Pose2D:
     """Represent a two-dimensional pose."""
 
-    x: float
-    y: float
-    theta: float
+    x: float | np.ndarray
+    y: float | np.ndarray
+    theta: float | np.ndarray
+
+    def as_vector(self) -> np.ndarray:
+        return np.array([[self.x], [self.y], [self.theta]])
 
 
 @dataclass

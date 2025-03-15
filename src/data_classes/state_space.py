@@ -113,31 +113,3 @@ def plot_history(
 
     plt.show()
     plt.close()
-
-
-def plot_states(
-    history: StateSpaceData, title: str = "State Space History"
-) -> None:  # pragma: no cover
-    """Plot the history of state space model.
-
-    :param history: State history object
-    :param title: Plot title
-    :return: None
-    """
-    fig, axs = plt.subplots(1, 1, sharex=True, figsize=FIG_SIZE)
-    plt.suptitle(title)
-
-    state_0 = np.array([arr[0] for arr in history.state])
-    state_1 = np.array([arr[1] for arr in history.state])
-    state_0, state_1 = state_0.flatten(), state_1.flatten()
-
-    axs.scatter(state_0, state_1, s=PLOT_MARKER_SIZE, label="$ x_1 vs x_2$")
-
-    axs.grid(True)
-    axs.set_aspect("equal")
-    axs.legend(loc=LEGEND_LOC)
-    axs.set_xlabel("$x_0$")
-    axs.set_ylabel("$x_1$")
-
-    plt.show()
-    plt.close()

@@ -25,15 +25,16 @@ class ExtendedKalmanFilter:
         initial_x: np.ndarray,
         initial_covariance: np.ndarray,
     ) -> None:
-        """Initialize the Kalman Filter.
+        """Initialize the Extended Kalman Filter.
 
         :param state_space_nonlinear: nonlinear state space model
         :param process_noise: Process noise covariance
         :param measurement_noise: Measurement noise covariance
+        :param initial_x: Initial state estimate
         :param initial_covariance: Initial error covariance
         :return: None
         """
-        self.ss_nl = state_space_nonlinear
+        self.state_space_nl = state_space_nonlinear
         self.Q: np.ndarray = process_noise
         self.R: np.ndarray = measurement_noise
         self.x: np.ndarray = initial_x
@@ -44,9 +45,9 @@ class ExtendedKalmanFilter:
 
         :param u: Control input
         """
-        state_space = self.ss_nl.linearize(self.x, u)
+        state_space = self.state_space_nl.linearize(x=self.x, u=u)
 
-        self.x = self.ss_nl.step(x=self.x, u=u)
+        self.x = self.state_space_nl.step(x=self.x, u=u)
         self.cov = state_space.A @ self.cov @ state_space.A.T + self.Q
         self.cov = symmetrize_matrix(self.cov)
 
@@ -57,9 +58,9 @@ class ExtendedKalmanFilter:
         :param u: Control input
         :return: Updated state estimate and state covariance
         """
-        state_space = self.ss_nl.linearize(self.x, u=u)
+        state_space = self.state_space_nl.linearize(x=self.x, u=u)
 
-        y = z - state_space.C @ self.x  # Measurement residual
+        y = z - self.state_space_nl.predict_z(self.x, u)  # Measurement residual
         S = state_space.C @ self.cov @ state_space.C.T + self.R  # Innovation covariance
         K = self.cov @ state_space.C.T @ np.linalg.inv(S)  # Kalman gain
         self.x = self.x + K @ y

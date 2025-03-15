@@ -146,7 +146,7 @@ class StateSpaceNonlinear:
     def __init__(
         self,
         motion_model: list[Callable],
-        measurement_model: Optional[list[Callable]] = None,
+        measurement_model: list[Callable],
     ):
         """Initialize a nonlinear state space model."""
         self.motion_model = motion_model
@@ -174,7 +174,24 @@ class StateSpaceNonlinear:
                 dfdu[func_idx, u_idx] = self._partial_derivative_u(
                     func=func, x=x, u=u, idx=u_idx
                 )
-        return StateSpaceLinear(A=dfdx, B=dfdu)
+
+        # linearize the measurement model around the control input
+        dhdx = np.zeros((len(self.measurement_model), len(x)))
+        for func_idx, func in enumerate(self.measurement_model):
+            for x_idx in range(len(x)):
+                dfdx[func_idx, x_idx] = self._partial_derivative_x(
+                    func=func, x=x, u=u, idx=x_idx
+                )
+
+        # linearize the measurement model around the control input
+        dhdu = np.zeros((len(self.measurement_model), len(u)))
+        for func_idx, func in enumerate(self.measurement_model):
+            for u_idx in range(len(u)):
+                dfdu[func_idx, u_idx] = self._partial_derivative_u(
+                    func=func, x=x, u=u, idx=u_idx
+                )
+        state_space = StateSpaceLinear(A=dfdx, B=dfdu, C=dhdx, D=dhdu)
+        return state_space
 
     @staticmethod
     def _partial_derivative_x(
@@ -212,6 +229,18 @@ class StateSpaceNonlinear:
         for ii, func in enumerate(self.motion_model):
             x_new[ii, 0] = func(x, u)[0]
         return x_new
+
+    def predict_z(self, x: np.ndarray, u: np.ndarray) -> np.ndarray:
+        """Step the state-space model by one step.
+
+        :param x: Current state
+        :param u: Control input
+        :return: Next state
+        """
+        z_pred = np.zeros((len(self.measurement_model), 1))
+        for ii, func in enumerate(self.measurement_model):
+            z_pred[ii, 0] = func(x, u)[0]
+        return z_pred
 
 
 # April 1 - April 16

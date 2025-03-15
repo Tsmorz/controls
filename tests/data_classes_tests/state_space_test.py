@@ -133,7 +133,10 @@ def test_state_space_nonlinear() -> None:
         return x[0, 0] ** 2 + x[1, 0]
 
     motion_model = [test_func]
-    state_space_nl = StateSpaceNonlinear(motion_model=motion_model)
+    measurement_model = [test_func]
+    state_space_nl = StateSpaceNonlinear(
+        motion_model=motion_model, measurement_model=measurement_model
+    )
 
     state = np.array([[3.0], [2.0]])
     state_space = state_space_nl.linearize(x=state, u=np.zeros((2, 1)))

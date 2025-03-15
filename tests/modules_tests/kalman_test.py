@@ -19,7 +19,7 @@ def test_kalman_filter_initialization() -> None:
         state_space=ss,
         process_noise=Q,
         measurement_noise=R,
-        initial_state=initial_state,
+        initial_x=initial_state,
         initial_covariance=initial_covariance,
     )
 
@@ -46,7 +46,7 @@ def test_kalman_filter_predict_with_control_input() -> None:
         state_space=ss,
         process_noise=Q,
         measurement_noise=R,
-        initial_state=initial_state,
+        initial_x=initial_state,
         initial_covariance=initial_covariance,
     )
 
