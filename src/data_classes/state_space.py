@@ -37,9 +37,10 @@ class StateSpaceData:
             self.state_true.append(x_truth)
 
 
-def _add_bounds(ax, data, sigma, history, state, color) -> None:
-    lower = data - 2.576 * sigma
-    upper = data + 2.576 * sigma
+def _add_bounds(ax, data, sigma, history, state, color) -> None:  # pragma: no cover
+    confidence_99 = 2.576
+    lower = data - confidence_99 * sigma
+    upper = data + confidence_99 * sigma
     ax.fill_between(
         history.time,
         lower,

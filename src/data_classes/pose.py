@@ -15,7 +15,7 @@ class Pose2D:
     theta: float | np.ndarray
     covariance: Optional[np.ndarray] = None
 
-    def __str__(self):
+    def __str__(self):  # pragma: no cover
         """Return a string representation of the pose."""
         return f"Pose2D(x:{self.x:.2f}, y:{self.y:.2f}, theta:{self.theta:.2f})"
 

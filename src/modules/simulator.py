@@ -120,7 +120,7 @@ def robot_model() -> StateSpaceNonlinear:
         pos_x, pos_y, theta, _, _ = state_control
         delta_x = feature.x - pos_x
         delta_y = feature.y - pos_y
-        angle = np.arctan(delta_y / delta_x) - theta
+        angle = np.arctan2(delta_y, delta_x) - theta
         return angle
 
     measurement_model = [
@@ -179,7 +179,7 @@ class SlamSimulator:
         delta_y = feature.y - self.pose.y
         distance = np.sqrt(delta_x**2 + delta_y**2)
 
-        angle = np.arctan(delta_y / delta_x) - self.pose.theta
+        angle = np.arctan2(delta_y, delta_x) - self.pose.theta
 
         return np.array([[distance], [angle]])
 
@@ -189,8 +189,6 @@ class SlamSimulator:
 
     def plot_results(self):
         plt.figure(figsize=(8, 8)).add_subplot(111)
-        plt.xlim(-10, 10)
-        plt.ylim(-10, 10)
         plt.axis("equal")
         plt.grid(True)
         plt.xlabel("x position")
@@ -216,6 +214,8 @@ class SlamSimulator:
                 width=0.01,
                 color="red",
             )
+            plt.draw()
+            plt.pause(0.05)
 
         plt.show()
         plt.close()

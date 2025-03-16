@@ -3,6 +3,7 @@
 import argparse
 from enum import Enum, auto
 
+import matplotlib.pyplot as plt
 import numpy as np
 from loguru import logger
 
@@ -93,7 +94,7 @@ def run_ekf_pipeline():
     logger.info("Running Extended Kalman Filter pipeline.")
 
     robot = robot_model()
-    initial_pose = Pose2D(x=0.0, y=0.0, theta=np.pi / 2)
+    initial_pose = Pose2D(x=-1.0, y=0.0, theta=0.0)
     ekf = ExtendedKalmanFilter(
         state_space_nonlinear=robot,
         initial_x=initial_pose.as_vector(),
@@ -106,25 +107,40 @@ def run_ekf_pipeline():
         measurement_noise=ekf.R,
         initial_pose=initial_pose,
     )
-
-    steps = 100
-    vel = 0.5
-    omega = 0.5 * np.pi / steps
-
     sim_map = Map()
-    sim_map.append_feature(Feature(x=-10.0, y=1.0, id=0))
-    sim_map.append_feature(Feature(x=10.0, y=1.0, id=1))
+    sim_map.append_feature(Feature(x=5.0, y=5.0, id=0))
+    sim_map.append_feature(Feature(x=20.0, y=15.0, id=1))
+    sim_map.append_feature(Feature(x=-5.0, y=20.0, id=2))
 
-    for step in range(steps):
-        u = np.array([[vel], [omega]])
+    plt.figure(figsize=(8, 8)).add_subplot(111)
+    plt.axis("equal")
+    plt.grid(True)
+    plt.xlabel("x position")
+    plt.ylabel("y position")
+    plt.title("Robot Localization")
+
+    s1 = 25 * [0] + 6 * [np.pi / 2 / 6]
+    omegas = s1 + s1 + s1 + s1
+    for ii, omega in enumerate(omegas):
+        u = np.array([[0.5], [omega]])
         sim.step(u=u)
         ekf.predict(u=u)
 
-        t = step / 10
-        if t % 1 == 0:
+        if (ii / 20) % 1 == 0 and ii != 0:
             for feature in sim_map.features:
                 measurement = sim.get_measurement(feature)
                 ekf.update(z=measurement, u=u, other_args=feature)
+                dist = measurement[0, 0]
+                ang = measurement[1, 0]
+                pos_x = ekf.x[0, 0]
+                pos_y = ekf.x[1, 0]
+                theta = ekf.x[2, 0]
+                plt.plot(
+                    [pos_x, pos_x + dist * np.cos(theta + ang)],
+                    [pos_y, pos_y + dist * np.sin(theta + ang)],
+                    "k-",
+                    alpha=0.2,
+                )
 
         pose = Pose2D(
             x=ekf.x[0, 0],
@@ -132,7 +148,29 @@ def run_ekf_pipeline():
             theta=ekf.x[2, 0] % (2 * np.pi),
         )
         sim.append_estimate(pose)
-    sim.plot_results()
+
+        plt.plot([sim.pose.x, pose.x], [sim.pose.y, pose.y], "k-", alpha=0.8)
+        plt.arrow(
+            x=pose.x,
+            y=pose.y,
+            dx=0.1 * np.cos(pose.theta),
+            dy=0.1 * np.sin(pose.theta),
+            width=0.01,
+            color="blue",
+        )
+        plt.arrow(
+            x=sim.pose.x,
+            y=sim.pose.y,
+            dx=0.1 * np.cos(sim.pose.theta),
+            dy=0.1 * np.sin(sim.pose.theta),
+            width=0.01,
+            color="red",
+        )
+        plt.draw()
+        plt.pause(0.05)
+
+    plt.show()
+    plt.close()
 
 
 def main(pipeline_id: str) -> None:

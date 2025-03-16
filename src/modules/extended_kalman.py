@@ -81,11 +81,9 @@ class ExtendedKalmanFilter:
         )
         state_space = StateSpaceLinear(A, B, C, D)
 
-        y = z - self.state_space_nl.predict_z(
-            self.x, u, other_args
-        )  # Measurement residual
-        S = state_space.C @ self.cov @ state_space.C.T + self.R  # Innovation covariance
-        K = self.cov @ state_space.C.T @ np.linalg.inv(S)  # Kalman gain
+        y = z - self.state_space_nl.predict_z(self.x, u, other_args)
+        S = state_space.C @ self.cov @ state_space.C.T + self.R
+        K = self.cov @ state_space.C.T @ np.linalg.inv(S)
         self.x = self.x + K @ y
         cov = (np.eye(self.cov.shape[0]) - K @ state_space.C) @ self.cov
         self.cov = symmetrize_matrix(cov)
