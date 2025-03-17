@@ -1,3 +1,5 @@
+"""Add a doc string to my files."""
+
 import numpy as np
 
 from config.definitions import DEFAULT_VARIANCE

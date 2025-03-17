@@ -27,5 +27,8 @@ LOG_LEVEL = "INFO"
 EPSILON = 1e-3
 
 # Map definitions
-MAP_NUM_FEATURES = 100
+MAP_NUM_FEATURES = 10
 MAP_DIM = (10, 10)
+
+# Unit definitions
+DEFAULT_UNITS = "m"

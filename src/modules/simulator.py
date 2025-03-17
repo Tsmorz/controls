@@ -4,10 +4,12 @@ from typing import Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
+from loguru import logger
 
 from config.definitions import DEFAULT_DISCRETIZATION
 from src.data_classes.map import Feature
-from src.data_classes.pose import Pose2D
+from src.data_classes.pose import SE2
+from src.data_classes.sensors import Bearing, Distance, DistanceAndBearing, SensorType
 from src.modules.state_space import StateSpaceLinear, StateSpaceNonlinear
 
 
@@ -61,6 +63,14 @@ class KalmanSimulator:
         return self.C @ self.x + noise
 
 
+def get_angular_velocities_for_box(steps: int, radius_steps: int) -> list[float]:
+    """Create the angular velocity control inputs for a box."""
+    side_length = int(steps / 4)
+    one_side = side_length * [0] + radius_steps * [np.pi / 2 / radius_steps]
+    turning_rates = one_side + one_side + one_side + one_side
+    return turning_rates
+
+
 def mass_spring_damper_model(
     mass: float = 0.5,
     spring_const: float = 20.0,
@@ -83,45 +93,49 @@ def mass_spring_damper_model(
     return model
 
 
+def pos_x_func(state_control: np.ndarray) -> np.ndarray:
+    """Find the x position given the state and control vectors."""
+    pos_x, _, theta, vel, _ = state_control
+    return vel * np.cos(theta) + pos_x
+
+
+def pos_y_func(state_control: np.ndarray) -> np.ndarray:
+    """Find the y position given the state and control vectors."""
+    _, pos_y, theta, vel, _ = state_control
+    return vel * np.sin(theta) + pos_y
+
+
+def heading_func(state_control: np.ndarray) -> np.ndarray:
+    """Find the heading given the state and control vectors."""
+    _, _, theta, vel, theta_dot = state_control
+    return np.array(theta + theta_dot)
+
+
+def measure_range_func(state_control: np.ndarray, feature: Feature) -> np.ndarray:
+    """Find the x position given the state and control vectors."""
+    pos_x, pos_y, _, _, _ = state_control
+    delta_x = feature.x - pos_x
+    delta_y = feature.y - pos_y
+    distance = np.sqrt(delta_x**2 + delta_y**2)
+    return distance
+
+
+def measure_angle_func(state_control: np.ndarray, feature: Feature) -> np.ndarray:
+    """Find the y position given the state and control vectors."""
+    pos_x, pos_y, theta, _, _ = state_control
+    delta_x = feature.x - pos_x
+    delta_y = feature.y - pos_y
+    angle = np.arctan2(delta_y, delta_x) - theta
+    return angle
+
+
 def robot_model() -> StateSpaceNonlinear:
     """Create a StateSpaceNonlinear model of a wheeled robot."""
-
-    def pos_x_func(state_control: np.ndarray) -> np.ndarray:
-        """Find the x position given the state and control vectors."""
-        pos_x, _, theta, vel, _ = state_control
-        return vel * np.cos(theta) + pos_x
-
-    def pos_y_func(state_control: np.ndarray) -> np.ndarray:
-        """Find the y position given the state and control vectors."""
-        _, pos_y, theta, vel, _ = state_control
-        return vel * np.sin(theta) + pos_y
-
-    def heading_func(state_control: np.ndarray) -> np.ndarray:
-        """Find the heading given the state and control vectors."""
-        _, _, theta, vel, theta_dot = state_control
-        return np.array(theta + theta_dot)
-
     motion_model = [
         pos_x_func,
         pos_y_func,
         heading_func,
     ]
-
-    def measure_range_func(state_control: np.ndarray, feature: Feature) -> np.ndarray:
-        """Find the x position given the state and control vectors."""
-        pos_x, pos_y, _, _, _ = state_control
-        delta_x = feature.x - pos_x
-        delta_y = feature.y - pos_y
-        distance = np.sqrt(delta_x**2 + delta_y**2)
-        return distance
-
-    def measure_angle_func(state_control: np.ndarray, feature: Feature) -> np.ndarray:
-        """Find the y position given the state and control vectors."""
-        pos_x, pos_y, theta, _, _ = state_control
-        delta_x = feature.x - pos_x
-        delta_y = feature.y - pos_y
-        angle = np.arctan2(delta_y, delta_x) - theta
-        return angle
 
     measurement_model = [
         measure_range_func,
@@ -141,7 +155,7 @@ class SlamSimulator:
         state_space_nl: StateSpaceNonlinear,
         process_noise: np.ndarray,
         measurement_noise: np.ndarray,
-        initial_pose: Pose2D,
+        initial_pose: SE2,
     ) -> None:
         """Initialize the Kalman Filter.
 
@@ -154,10 +168,10 @@ class SlamSimulator:
         self.state_space_nl = state_space_nl
         self.Q: np.ndarray = process_noise
         self.R: np.ndarray = measurement_noise
-        self.pose: Pose2D = initial_pose
-        self.history: list[tuple[Pose2D, Pose2D]] = []
+        self.pose: SE2 = initial_pose
+        self.history: list[tuple[SE2, SE2]] = []
 
-    def step(self, u: np.ndarray) -> Pose2D:
+    def step(self, u: np.ndarray) -> SE2:
         """Predict the next state and error covariance.
 
         :param u: Control input
@@ -166,28 +180,35 @@ class SlamSimulator:
         scale = np.reshape(scale, (self.Q.shape[0], 1))
         noise = np.random.normal(loc=0.0, scale=scale, size=(3, 1))
         x = self.state_space_nl.step(x=self.pose.as_vector(), u=u) + noise
-        self.pose = Pose2D(x=x[0, 0], y=x[1, 0], theta=x[2, 0])
+        self.pose = SE2(x=x[0, 0], y=x[1, 0], theta=x[2, 0])
         return self.pose
 
-    def get_measurement(self, feature: Feature) -> np.ndarray:
+    def get_measurement(
+        self, feature: Feature, sensor_type: SensorType
+    ) -> Distance | Bearing | DistanceAndBearing:
         """Calculate the range distance measurement between a pose and a feature.
 
         :param feature: Feature in the map
+        :param sensor_type: Sensor used for measurement
         :return: Range distance measurement
         """
-        delta_x = feature.x - self.pose.x
-        delta_y = feature.y - self.pose.y
-        distance = np.sqrt(delta_x**2 + delta_y**2)
+        if sensor_type == SensorType.DISTANCE:
+            return Distance(ground_truth=self.pose, features=[feature])
+        elif sensor_type == SensorType.BEARING:
+            return Bearing(ground_truth=self.pose, features=[feature])
+        elif sensor_type == SensorType.DISTANCE_AND_BEARING:
+            return DistanceAndBearing(ground_truth=self.pose, features=[feature])
+        else:
+            msg = f"Unsupported sensor type: {sensor_type}"
+            logger.error(msg)
+            raise ValueError(msg)
 
-        angle = np.arctan2(delta_y, delta_x) - self.pose.theta
-
-        return np.array([[distance], [angle]])
-
-    def append_estimate(self, estimated_pose: Pose2D) -> None:
+    def append_estimate(self, estimated_pose: SE2) -> None:
         """Update the state estimate based on an estimated pose."""
         self.history.append((estimated_pose, self.pose))
 
     def plot_results(self):
+        """Plot the simulation results."""
         plt.figure(figsize=(8, 8)).add_subplot(111)
         plt.axis("equal")
         plt.grid(True)

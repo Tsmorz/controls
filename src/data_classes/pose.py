@@ -5,16 +5,18 @@ from typing import Optional
 
 import numpy as np
 
+from config.definitions import DEFAULT_UNITS
+
 
 @dataclass
-class Pose2D:
+class SE2:
     """Represent a two-dimensional pose."""
 
-    x: float
-    y: float
-    theta: float
+    x: float | np.ndarray
+    y: float | np.ndarray
+    theta: float | np.ndarray
     covariance: Optional[np.ndarray] = None
-    units: Optional[str] = "m"
+    units: Optional[str] = DEFAULT_UNITS
 
     def __str__(self):  # pragma: no cover
         """Return a string representation of the pose."""
@@ -39,3 +41,11 @@ class Pose2D:
                 [0.0, 0.0, 1.0],
             ]
         )
+
+
+@dataclass
+class Velocity:
+    """Represent the velocity as a dataclass."""
+
+    x: float | np.ndarray
+    y: float | np.ndarray

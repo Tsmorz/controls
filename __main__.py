@@ -10,8 +10,9 @@ from loguru import logger
 from config.definitions import (
     DEFAULT_DISCRETIZATION,
 )
-from src.data_classes.map import Feature, Map
-from src.data_classes.pose import Pose2D
+from src.data_classes.map import Map
+from src.data_classes.pose import SE2
+from src.data_classes.sensors import SensorType
 from src.data_classes.state_space import StateSpaceData, plot_history
 from src.modules.controller import full_state_feedback, get_control_input
 from src.modules.extended_kalman import ExtendedKalmanFilter
@@ -19,6 +20,7 @@ from src.modules.kalman import KalmanFilter
 from src.modules.simulator import (
     KalmanSimulator,
     SlamSimulator,
+    get_angular_velocities_for_box,
     mass_spring_damper_model,
     robot_model,
 )
@@ -94,7 +96,7 @@ def run_ekf_pipeline():
     logger.info("Running Extended Kalman Filter pipeline.")
 
     robot = robot_model()
-    initial_pose = Pose2D(x=-1.0, y=0.0, theta=0.0)
+    initial_pose = SE2(x=-1.0, y=0.0, theta=0.0)
     ekf = ExtendedKalmanFilter(
         state_space_nonlinear=robot,
         initial_x=initial_pose.as_vector(),
@@ -107,10 +109,9 @@ def run_ekf_pipeline():
         measurement_noise=ekf.R,
         initial_pose=initial_pose,
     )
+
     sim_map = Map()
-    sim_map.append_feature(Feature(x=5.0, y=5.0, id=0))
-    sim_map.append_feature(Feature(x=20.0, y=15.0, id=1))
-    sim_map.append_feature(Feature(x=-5.0, y=20.0, id=2))
+    sim_map.make_random_map_planar(num_features=3, dim=(15, 15))
 
     plt.figure(figsize=(8, 8)).add_subplot(111)
     plt.axis("equal")
@@ -119,8 +120,7 @@ def run_ekf_pipeline():
     plt.ylabel("y position")
     plt.title("Robot Localization")
 
-    s1 = 25 * [0] + 6 * [np.pi / 2 / 6]
-    omegas = s1 + s1 + s1 + s1
+    omegas = get_angular_velocities_for_box(steps=100, radius_steps=6)
     for ii, omega in enumerate(omegas):
         u = np.array([[0.5], [omega]])
         sim.step(u=u)
@@ -128,21 +128,22 @@ def run_ekf_pipeline():
 
         if (ii / 20) % 1 == 0 and ii != 0:
             for feature in sim_map.features:
-                measurement = sim.get_measurement(feature)
-                ekf.update(z=measurement, u=u, other_args=feature)
-                dist = measurement[0, 0]
-                ang = measurement[1, 0]
+                sensor = SensorType.DISTANCE_AND_BEARING
+                measurement = sim.get_measurement(feature=feature, sensor_type=sensor)
+                logger.info(f"measurement: {measurement}")
+
+                ekf.update(z=measurement.as_vector(), u=u, measurement_args=feature)
+
+                dist = measurement.distance[0]
+                ang = measurement.bearing[0]
                 pos_x = ekf.x[0, 0]
                 pos_y = ekf.x[1, 0]
                 theta = ekf.x[2, 0]
-                plt.plot(
-                    [pos_x, pos_x + dist * np.cos(theta + ang)],
-                    [pos_y, pos_y + dist * np.sin(theta + ang)],
-                    "k-",
-                    alpha=0.2,
-                )
+                x1, x2 = pos_x, pos_x + dist * np.cos(theta + ang)
+                y1, y2 = pos_y, pos_y + dist * np.sin(theta + ang)
+                plt.plot([x1, x2], [y1, y2], "k-", alpha=0.2)
 
-        pose = Pose2D(
+        pose = SE2(
             x=ekf.x[0, 0],
             y=ekf.x[1, 0],
             theta=ekf.x[2, 0] % (2 * np.pi),

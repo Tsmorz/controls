@@ -27,6 +27,7 @@ class StateSpaceData:
         cov: Optional[np.ndarray] = None,
         u: Optional[np.ndarray] = None,
     ) -> None:
+        """Append state data."""
         self.time.append(t)
         self.state.append(x)
         if u is not None:
@@ -35,20 +36,6 @@ class StateSpaceData:
             self.covariance.append(cov)
         if x_truth is not None:
             self.state_true.append(x_truth)
-
-
-def _add_bounds(ax, data, sigma, history, state, color) -> None:  # pragma: no cover
-    confidence_99 = 2.576
-    lower = data - confidence_99 * sigma
-    upper = data + confidence_99 * sigma
-    ax.fill_between(
-        history.time,
-        lower,
-        upper,
-        color=color,
-        alpha=0.5,
-        label=f"$x_{state} 99 C.I. $",
-    )
 
 
 def plot_history(
@@ -60,6 +47,20 @@ def plot_history(
     :param title: Plot title
     :return: None
     """
+
+    def _add_bounds(state, color) -> None:  # pragma: no cover
+        confidence_99 = 2.576
+        lower = data - confidence_99 * sigma
+        upper = data + confidence_99 * sigma
+        ax.fill_between(
+            history.time,
+            lower,
+            upper,
+            color=color,
+            alpha=0.5,
+            label=f"$x_{state} 99 C.I. $",
+        )
+
     num_states = history.state[0].shape[0]
     fig, axs = plt.subplots(2, 1, sharex=True, figsize=FIG_SIZE)
     plt.suptitle(title)
@@ -76,10 +77,6 @@ def plot_history(
                 history.time, data, "--", label=f"$x_{num_state}$", alpha=PLOT_ALPHA
             )
             _add_bounds(
-                ax,
-                data=data,
-                sigma=sigma.flatten(),
-                history=history,
                 state=num_state,
                 color=p[0].get_color(),
             )

@@ -1,8 +1,10 @@
+"""Add a doc string to my files."""
+
 import numpy as np
 import pytest
 
 from config.definitions import DEFAULT_DT
-from src.data_classes.pose import Pose2D
+from src.data_classes.pose import SE2
 from src.data_classes.state_space import StateSpaceData
 from src.modules.simulator import mass_spring_damper_model, robot_model
 from src.modules.state_space import StateSpaceLinear, StateSpaceNonlinear
@@ -165,7 +167,7 @@ def test_state_space_nonlinear_robot_model(vel: float, theta: float) -> None:
     """Test the initialization of the Kalman filter."""
     # Arrange
     robot = robot_model()
-    pose = Pose2D(x=0.0, y=0.0, theta=theta)
+    pose = SE2(x=0.0, y=0.0, theta=theta)
     u = np.array([[vel], [0.0]])
 
     # Act

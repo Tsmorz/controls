@@ -6,10 +6,10 @@ import numpy as np
 from loguru import logger
 
 from src.data_classes.map import Feature
-from src.data_classes.pose import Pose2D
+from src.data_classes.pose import SE2
 
 
-class Sensor(Enum):
+class SensorType(Enum):
     """Define the individual sensor types."""
 
     GPS = auto()
@@ -22,11 +22,15 @@ class Sensor(Enum):
 class Distance:
     """Construct a distance sensor measurement."""
 
-    def __init__(self, ground_truth: Pose2D, features: list[Feature]):
-        dx = ground_truth.x - np.array([feature.x for feature in features])
-        dy = ground_truth.y - np.array([feature.y for feature in features])
+    def __init__(self, ground_truth: SE2, features: list[Feature]):
+        dx = np.array([feature.x for feature in features]) - ground_truth.x
+        dy = np.array([feature.y for feature in features]) - ground_truth.y
         self.distance: np.ndarray = np.sqrt(dx**2 + dy**2)
-        self.type = Sensor.DISTANCE
+        self.type = SensorType.DISTANCE
+
+    def as_vector(self) -> np.ndarray:
+        """Represent the data as a 1-by-n matrix."""
+        return self.distance.reshape((1, len(self.distance)))
 
     def __str__(self) -> str:
         """Return a string representation of the sensor measurements."""
@@ -37,11 +41,15 @@ class Distance:
 class Bearing:
     """Construct a bearing sensor measurement."""
 
-    def __init__(self, ground_truth: Pose2D, features: list[Feature]):
-        dx = ground_truth.x - np.array([feature.x for feature in features])
-        dy = ground_truth.y - np.array([feature.y for feature in features])
+    def __init__(self, ground_truth: SE2, features: list[Feature]):
+        dx = np.array([feature.x for feature in features]) - ground_truth.x
+        dy = np.array([feature.y for feature in features]) - ground_truth.y
         self.bearing: np.ndarray = np.arctan2(dy, dx) - ground_truth.theta
-        self.type = Sensor.BEARING
+        self.type = SensorType.BEARING
+
+    def as_vector(self) -> np.ndarray:
+        """Represent the data as a 1-by-n matrix."""
+        return self.bearing.reshape((1, len(self.bearing)))
 
     def __str__(self) -> str:
         """Return a string representation of the sensor measurements."""
@@ -52,10 +60,16 @@ class Bearing:
 class DistanceAndBearing(Distance, Bearing):
     """Construct a distance and bearing sensor measurement."""
 
-    def __init__(self, ground_truth: Pose2D, features: list[Feature]):
+    def __init__(self, ground_truth: SE2, features: list[Feature]):
         Distance.__init__(self, ground_truth, features)
         Bearing.__init__(self, ground_truth, features)
-        self.type = Sensor.DISTANCE_AND_BEARING
+        self.type = SensorType.DISTANCE_AND_BEARING
+
+    def as_vector(self) -> np.ndarray:
+        """Represent the data as a 1-by-n matrix."""
+        distances = self.distance.reshape((1, len(self.distance)))
+        bearings = self.bearing.reshape((1, len(self.bearing)))
+        return np.vstack((distances, bearings))
 
     def __str__(self) -> str:
         """Return a string representation of the sensor measurements."""
@@ -72,7 +86,7 @@ def main():
         Feature(x=3.0, y=4.0, id=2),
     ]
 
-    pose = Pose2D(x=0.0, y=0.0, theta=np.pi / 2)
+    pose = SE2(x=0.0, y=0.0, theta=np.pi / 2)
     meas = DistanceAndBearing(ground_truth=pose, features=features)
     logger.info(meas)
 

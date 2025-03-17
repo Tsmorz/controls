@@ -15,7 +15,6 @@ class Feature:
     id: int
     x: float
     y: float
-    z: float = 0.0
 
 
 @dataclass

@@ -216,25 +216,21 @@ class StateSpaceNonlinear:
         return x_new
 
     def predict_z(
-        self, x: np.ndarray, u: np.ndarray, other_args: Optional[Any] = None
+        self, x: np.ndarray, u: np.ndarray, measurement_args: Optional[Any] = None
     ) -> np.ndarray:
         """Step the state-space model by one step.
 
         :param x: Current state
         :param u: Control input
+        :param measurement_args: Additional arguments (e.g., map of features)
         :return: Next state
         """
         z_pred = np.zeros((len(self.measurement_model), 1))
         xu = np.vstack((x, u))
-        if other_args is None:
+        if measurement_args is None:
             for ii, func in enumerate(self.measurement_model):
                 z_pred[ii, 0] = func(xu)[0]
         else:
             for ii, func in enumerate(self.measurement_model):
-                z_pred[ii, 0] = func(xu, other_args)[0]
+                z_pred[ii, 0] = func(xu, measurement_args)[0]
         return z_pred
-
-
-# April 1 - April 16
-# April 22 - April 30
-# May 9 - May 18

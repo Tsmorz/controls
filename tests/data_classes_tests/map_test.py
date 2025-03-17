@@ -1,3 +1,5 @@
+"""Add a doc string to my files."""
+
 import pytest
 
 from src.data_classes.map import Feature, Map
