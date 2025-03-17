@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
+import numpy.typing as npt
 
 from config.definitions import DEFAULT_UNITS
 
@@ -27,11 +28,13 @@ class SE2:
         )
         return msg
 
-    def as_vector(self) -> np.ndarray:
+    def as_vector(self) -> npt.NDArray[np.float64]:
         """Represent the data as a 3-by-1 matrix."""
-        return np.array([[self.x], [self.y], [self.theta]])
+        return np.asarray(
+            np.array([[self.x], [self.y], [self.theta]]), dtype=np.float64
+        )
 
-    def as_matrix(self):
+    def as_matrix(self) -> np.ndarray:
         """Represent the data as a 3-by-3 matrix."""
         matrix = np.ones(3)
         matrix[:2, :2] = np.array(
@@ -41,6 +44,7 @@ class SE2:
                 [0.0, 0.0, 1.0],
             ]
         )
+        return matrix
 
 
 @dataclass
