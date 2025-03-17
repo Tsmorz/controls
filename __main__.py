@@ -91,8 +91,13 @@ def run_kf_pipeline() -> None:
     plot_history(history=sim_history)
 
 
-def run_ekf_pipeline():
+def run_ekf_pipeline() -> None:
     """Test the EKF algorithm."""
+
+    def state_to_se2(state: np.ndarray) -> SE2:
+        """Map the state vector to SE2."""
+        return SE2(x=state[0, 0], y=state[1, 0], theta=state[2, 0])
+
     logger.info("Running Extended Kalman Filter pipeline.")
 
     robot = robot_model()
@@ -122,6 +127,7 @@ def run_ekf_pipeline():
 
     omegas = get_angular_velocities_for_box(steps=100, radius_steps=6)
     for ii, omega in enumerate(omegas):
+        logger.info(f"time={ii}s")
         u = np.array([[0.5], [omega]])
         sim.step(u=u)
         ekf.predict(u=u)
@@ -130,25 +136,19 @@ def run_ekf_pipeline():
             for feature in sim_map.features:
                 sensor = SensorType.DISTANCE_AND_BEARING
                 measurement = sim.get_measurement(feature=feature, sensor_type=sensor)
-                logger.info(f"measurement: {measurement}")
+                logger.info(f"Measurement={measurement}")
 
                 ekf.update(z=measurement.as_vector(), u=u, measurement_args=feature)
 
-                dist = measurement.distance[0]
-                ang = measurement.bearing[0]
-                pos_x = ekf.x[0, 0]
-                pos_y = ekf.x[1, 0]
-                theta = ekf.x[2, 0]
-                x1, x2 = pos_x, pos_x + dist * np.cos(theta + ang)
-                y1, y2 = pos_y, pos_y + dist * np.sin(theta + ang)
-                plt.plot([x1, x2], [y1, y2], "k-", alpha=0.2)
+                if measurement.type == SensorType.DISTANCE_AND_BEARING:
+                    m = measurement.as_vector()
+                    pose = state_to_se2(state=ekf.x)
+                    x1, x2 = pose.x, pose.x + m[0, 0] * np.cos(pose.theta + m[1, 0])
+                    y1, y2 = pose.y, pose.y + m[0, 0] * np.sin(pose.theta + m[1, 0])
+                    plt.plot([x1, x2], [y1, y2], "k-", alpha=0.2)
 
-        pose = SE2(
-            x=ekf.x[0, 0],
-            y=ekf.x[1, 0],
-            theta=ekf.x[2, 0] % (2 * np.pi),
-        )
-        sim.append_estimate(pose)
+        pose = state_to_se2(state=ekf.x)
+        sim.append_estimate(state_to_se2(state=ekf.x))
 
         plt.plot([sim.pose.x, pose.x], [sim.pose.y, pose.y], "k-", alpha=0.8)
         plt.arrow(
