@@ -262,3 +262,21 @@ class SlamSimulator:
         self.plot_pose(pose=self.pose, color="red")
         plt.draw()
         plt.pause(0.05)
+
+
+if __name__ == "__main__":
+
+    class MeasureAngleFunc:
+        """Find the y position given the state and control vectors."""
+
+        def __init__(self, state_control: np.ndarray, feature: Feature):
+            pos_x, pos_y, theta, _, _ = state_control
+            delta_x = feature.x - pos_x
+            delta_y = feature.y - pos_y
+            self.angle = np.arctan2(delta_y, delta_x) - theta
+
+        def __call__(self):
+            """Make the method callable."""
+            return self.angle
+
+    logger.info(MeasureAngleFunc)

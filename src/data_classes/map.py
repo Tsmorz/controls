@@ -22,7 +22,6 @@ class Map:
     """Dataclass to store features for a map."""
 
     features: list[Feature] = field(default_factory=list)
-    past_feature_ids: list[int] = field(default_factory=list)
 
     def append_feature(self, new_feature: Feature) -> None:
         """Append a feature to the map.
@@ -34,7 +33,6 @@ class Map:
             logger.warning(f"Revisited landmark with I.D. {new_feature.id}.")
         else:
             self.features.append(new_feature)
-            self.past_feature_ids.append(new_feature.id)
             logger.info(f"Added landmark with I.D. {new_feature.id}.")
 
     def feature_already_found(self, new_feature: Feature) -> bool:
@@ -43,7 +41,8 @@ class Map:
         :param new_feature: Feature to check
         :return: True if the feature already exists, False otherwise
         """
-        return new_feature.id in self.past_feature_ids
+        ids = [feature.id for feature in self.features]
+        return new_feature.id in ids
 
     def update_feature_location(self, feature: Feature) -> None:
         """Update the location of a feature.
@@ -51,7 +50,7 @@ class Map:
         :param feature: Feature to update
         :return: None
         """
-        idx = self.past_feature_ids.index(feature.id)
+        idx = [feature.id for feature in self.features].index(feature.id)
         self.features[idx].x = feature.x
         self.features[idx].y = feature.y
 

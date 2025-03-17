@@ -11,13 +11,12 @@ def test_map_creation() -> None:
     map_features = [Feature(id=1, x=1, y=1), Feature(id=2, x=2, y=2)]
 
     # Act
-    map_object = Map(features=map_features, past_feature_ids=[1, 2])
+    map_object = Map(features=map_features)
     map_object.append_feature(Feature(id=2, x=2, y=2))
     map_object.append_feature(Feature(id=3, x=2, y=2))
 
     # Assert
     assert map_object.features == map_features
-    assert map_object.past_feature_ids == [1, 2, 3]
 
 
 @pytest.mark.parametrize(("x", "y"), [(2, 3), (3, 4)])

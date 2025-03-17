@@ -3,7 +3,6 @@
 from enum import Enum, auto
 
 import numpy as np
-from loguru import logger
 
 from src.data_classes.map import Feature
 from src.data_classes.pose import SE2
@@ -76,24 +75,3 @@ class DistanceAndBearing(Distance, Bearing):
         distance_str = np.array2string(self.distance, precision=2, floatmode="fixed")
         bearing_str = np.array2string(self.bearing, precision=2, floatmode="fixed")
         return f"{self.type.name}(distance:{distance_str}, bearing:{bearing_str})"
-
-
-def main():
-    """CLI for testing."""
-    features = [
-        Feature(x=1.0, y=2.0, id=0),
-        Feature(x=2.0, y=3.0, id=1),
-        Feature(x=3.0, y=4.0, id=2),
-    ]
-
-    pose = SE2(x=0.0, y=0.0, theta=np.pi / 2)
-    meas = DistanceAndBearing(ground_truth=pose, features=features)
-    logger.info(meas)
-
-    matrix = np.random.normal(size=(3, 3))
-    matrix_str = np.array2string(matrix, precision=2, floatmode="fixed")
-    logger.info(f"My array:\n{matrix_str}")
-
-
-if __name__ == "__main__":  # pragma: no cover
-    main()
