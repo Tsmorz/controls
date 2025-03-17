@@ -25,18 +25,18 @@ class Map:
     features: list[Feature] = field(default_factory=list)
     past_feature_ids: list[int] = field(default_factory=list)
 
-    def append_feature(self, map_feature: Feature) -> None:
+    def append_feature(self, new_feature: Feature) -> None:
         """Append a feature to the map.
 
-        :param map_feature: Feature to be appended
+        :param new_feature: Feature to be appended
         :return: None
         """
-        if self.feature_already_found(map_feature):
-            logger.warning(f"Revisited landmark with I.D. {map_feature.id}.")
+        if self.feature_already_found(new_feature):
+            logger.warning(f"Revisited landmark with I.D. {new_feature.id}.")
         else:
-            self.features.append(map_feature)
-            self.past_feature_ids.append(map_feature.id)
-            logger.info(f"Added landmark with I.D. {map_feature.id}.")
+            self.features.append(new_feature)
+            self.past_feature_ids.append(new_feature.id)
+            logger.info(f"Added landmark with I.D. {new_feature.id}.")
 
     def feature_already_found(self, new_feature: Feature) -> bool:
         """Check if the feature already exists.

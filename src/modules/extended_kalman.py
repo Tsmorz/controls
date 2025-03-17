@@ -10,7 +10,7 @@ from src.modules.state_space import StateSpaceLinear, StateSpaceNonlinear
 
 
 class ExtendedKalmanFilter:
-    """Kalman filter implementation."""
+    """Extended Kalman filter implementation."""
 
     def __init__(
         self,

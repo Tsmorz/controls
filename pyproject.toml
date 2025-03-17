@@ -44,6 +44,7 @@ lint.select = [
     "PL",   # pylint (general best practices)
     "RUF",  # Ruff-specific rules
     "T20",
+    "F841"
 ]
 
 # Exclude some noisy or unnecessary rules
@@ -51,15 +52,16 @@ lint.ignore = [
     "D203",  # 1 blank line before a class (conflicts with D211)
     "D213",  # Multi-line docstring should start on the first line (conflicts with D212)
     "E501",  # Line length (handled by autoformatter instead)
-    "N803",
-    "D102",
-    "D100",
-    "N806",
-    "PLR0913",
+    "N803",  #  Argument name should be lowercase
+#    "D102",
+#    "D100",
+    "N806",  # Variable in function should be lowercase
     "D415",  # End first line with a period, question mark, or exclamation point
     "S101",  # Use of `assert` detected
     "E203",  # whitespace before ':'
     "E731",  # Do not assign a `lambda` expression, use a `def`
+    "D107",  # Missing docstring in `__init__`
+
 ]
 
 # Automatically fix issues where possible

@@ -1,0 +1,85 @@
+"""Add a doc string to my files."""
+
+from enum import Enum, auto
+
+import numpy as np
+from loguru import logger
+
+from src.data_classes.map import Feature
+from src.data_classes.pose import Pose2D
+
+
+class Sensor(Enum):
+    """Define the individual sensor types."""
+
+    GPS = auto()
+    IMU = auto()
+    DISTANCE = auto()
+    BEARING = auto()
+    DISTANCE_AND_BEARING = auto()
+
+
+class Distance:
+    """Construct a distance sensor measurement."""
+
+    def __init__(self, ground_truth: Pose2D, features: list[Feature]):
+        dx = ground_truth.x - np.array([feature.x for feature in features])
+        dy = ground_truth.y - np.array([feature.y for feature in features])
+        self.distance: np.ndarray = np.sqrt(dx**2 + dy**2)
+        self.type = Sensor.DISTANCE
+
+    def __str__(self) -> str:
+        """Return a string representation of the sensor measurements."""
+        distance_str = np.array2string(self.distance, precision=2, floatmode="fixed")
+        return f"{self.type.name}(distance:{distance_str})"
+
+
+class Bearing:
+    """Construct a bearing sensor measurement."""
+
+    def __init__(self, ground_truth: Pose2D, features: list[Feature]):
+        dx = ground_truth.x - np.array([feature.x for feature in features])
+        dy = ground_truth.y - np.array([feature.y for feature in features])
+        self.bearing: np.ndarray = np.arctan2(dy, dx) - ground_truth.theta
+        self.type = Sensor.BEARING
+
+    def __str__(self) -> str:
+        """Return a string representation of the sensor measurements."""
+        bearing_str = np.array2string(self.bearing, precision=2, floatmode="fixed")
+        return f"{self.type.name}(bearing:{bearing_str})"
+
+
+class DistanceAndBearing(Distance, Bearing):
+    """Construct a distance and bearing sensor measurement."""
+
+    def __init__(self, ground_truth: Pose2D, features: list[Feature]):
+        Distance.__init__(self, ground_truth, features)
+        Bearing.__init__(self, ground_truth, features)
+        self.type = Sensor.DISTANCE_AND_BEARING
+
+    def __str__(self) -> str:
+        """Return a string representation of the sensor measurements."""
+        distance_str = np.array2string(self.distance, precision=2, floatmode="fixed")
+        bearing_str = np.array2string(self.bearing, precision=2, floatmode="fixed")
+        return f"{self.type.name}(distance:{distance_str}, bearing:{bearing_str})"
+
+
+def main():
+    """CLI for testing."""
+    features = [
+        Feature(x=1.0, y=2.0, id=0),
+        Feature(x=2.0, y=3.0, id=1),
+        Feature(x=3.0, y=4.0, id=2),
+    ]
+
+    pose = Pose2D(x=0.0, y=0.0, theta=np.pi / 2)
+    meas = DistanceAndBearing(ground_truth=pose, features=features)
+    logger.info(meas)
+
+    matrix = np.random.normal(size=(3, 3))
+    matrix_str = np.array2string(matrix, precision=2, floatmode="fixed")
+    logger.info(f"My array:\n{matrix_str}")
+
+
+if __name__ == "__main__":  # pragma: no cover
+    main()
