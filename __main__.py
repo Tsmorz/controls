@@ -20,7 +20,6 @@ from src.modules.kalman import KalmanFilter
 from src.modules.simulator import (
     KalmanSimulator,
     SlamSimulator,
-    get_angular_velocities_for_box,
     mass_spring_damper_model,
     robot_model,
 )
@@ -113,69 +112,52 @@ def run_ekf_pipeline() -> None:
         process_noise=ekf.Q,
         measurement_noise=ekf.R,
         initial_pose=initial_pose,
+        steps=100,
     )
 
     sim_map = Map()
     sim_map.make_random_map_planar(num_features=3, dim=(15, 15))
 
-    plt.figure(figsize=(8, 8)).add_subplot(111)
-    plt.axis("equal")
-    plt.grid(True)
-    plt.xlabel("x position")
-    plt.ylabel("y position")
-    plt.title("Robot Localization")
-
-    omegas = get_angular_velocities_for_box(steps=100, radius_steps=6)
-    for ii, omega in enumerate(omegas):
-        logger.info(f"time={ii}s")
+    for time, omega in enumerate(sim.controls):
         u = np.array([[0.5], [omega]])
         sim.step(u=u)
         ekf.predict(u=u)
 
-        if (ii / 20) % 1 == 0 and ii != 0:
+        if (time / 20) % 1 == 0 and time != 0:
             for feature in sim_map.features:
-                sensor = SensorType.DISTANCE_AND_BEARING
-                measurement = sim.get_measurement(feature=feature, sensor_type=sensor)
+                measurement = sim.get_measurement(
+                    feature=feature,
+                    sensor_type=SensorType.DISTANCE_AND_BEARING,
+                )
                 logger.info(f"Measurement={measurement}")
 
                 ekf.update(z=measurement.as_vector(), u=u, measurement_args=feature)
 
                 if measurement.type == SensorType.DISTANCE_AND_BEARING:
-                    m = measurement.as_vector()
-                    pose = state_to_se2(state=ekf.x)
-                    x1, x2 = pose.x, pose.x + m[0, 0] * np.cos(pose.theta + m[1, 0])
-                    y1, y2 = pose.y, pose.y + m[0, 0] * np.sin(pose.theta + m[1, 0])
-                    plt.plot([x1, x2], [y1, y2], "k-", alpha=0.2)
+                    sim.add_measurement_to_plot(measurement, state=ekf.x)
 
         pose = state_to_se2(state=ekf.x)
-        sim.append_estimate(state_to_se2(state=ekf.x))
-
-        plt.plot([sim.pose.x, pose.x], [sim.pose.y, pose.y], "k-", alpha=0.8)
-        plt.arrow(
-            x=pose.x,
-            y=pose.y,
-            dx=0.1 * np.cos(pose.theta),
-            dy=0.1 * np.sin(pose.theta),
-            width=0.01,
-            color="blue",
-        )
-        plt.arrow(
-            x=sim.pose.x,
-            y=sim.pose.y,
-            dx=0.1 * np.cos(sim.pose.theta),
-            dy=0.1 * np.sin(sim.pose.theta),
-            width=0.01,
-            color="red",
-        )
-        plt.draw()
-        plt.pause(0.05)
+        sim.append_estimate(estimated_pose=pose, plot_pose=True)
 
     plt.show()
     plt.close()
 
 
-def main(pipeline_id: str) -> None:
-    """Process which pipeline to run."""
+if __name__ == "__main__":  # pragma: no cover
+    """Run the main program with this function."""
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-p",
+        "--pipeline",
+        action="store",
+        type=str,
+        required=True,
+        help=f"Choose which pipeline to run - {[v.name for v in Pipeline]}",
+    )
+    args = parser.parse_args()
+
+    pipeline_id = args.pipeline
+
     if pipeline_id == Pipeline.KF.name:
         run_kf_pipeline()
     elif pipeline_id == Pipeline.EKF.name:
@@ -188,18 +170,3 @@ def main(pipeline_id: str) -> None:
         raise ValueError(msg)
 
     logger.info("Program complete.")
-
-
-if __name__ == "__main__":  # pragma: no cover
-    """Run the main program with this function."""
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-p",
-        "--pipeline",
-        action="store",
-        type=str,
-        required=True,
-        help="Choose which pipeline to run. (1, 2, 3, etc.)",
-    )
-    args = parser.parse_args()
-    main(pipeline_id=args.pipeline)

@@ -156,6 +156,7 @@ class SlamSimulator:
         process_noise: np.ndarray,
         measurement_noise: np.ndarray,
         initial_pose: SE2,
+        steps: int = 100,
     ) -> None:
         """Initialize the Kalman Filter.
 
@@ -170,6 +171,15 @@ class SlamSimulator:
         self.R: np.ndarray = measurement_noise
         self.pose: SE2 = initial_pose
         self.history: list[tuple[SE2, SE2]] = []
+        self.controls = get_angular_velocities_for_box(steps=steps, radius_steps=6)
+
+        plt.figure(figsize=(8, 8)).add_subplot(111)
+        plt.axis("equal")
+        plt.grid(True)
+        plt.xlabel("x position")
+        plt.ylabel("y position")
+        plt.title("Robot Localization")
+        self.figure: plt.Figure
 
     def step(self, u: np.ndarray) -> SE2:
         """Predict the next state and error covariance.
@@ -185,7 +195,7 @@ class SlamSimulator:
 
     def get_measurement(
         self, feature: Feature, sensor_type: SensorType
-    ) -> Distance | Bearing | DistanceAndBearing:
+    ) -> DistanceAndBearing | Distance | Bearing:
         """Calculate the range distance measurement between a pose and a feature.
 
         :param feature: Feature in the map
@@ -203,40 +213,52 @@ class SlamSimulator:
             logger.error(msg)
             raise ValueError(msg)
 
-    def append_estimate(self, estimated_pose: SE2) -> None:
+    def append_estimate(self, estimated_pose: SE2, plot_pose: bool) -> None:
         """Update the state estimate based on an estimated pose."""
         self.history.append((estimated_pose, self.pose))
 
-    def plot_results(self):
-        """Plot the simulation results."""
-        plt.figure(figsize=(8, 8)).add_subplot(111)
-        plt.axis("equal")
-        plt.grid(True)
-        plt.xlabel("x position")
-        plt.ylabel("y position")
-        plt.title("Robot Localization")
-        for estimate_pose, true_pose in self.history:
+        if plot_pose:
             plt.plot(
-                [true_pose.x, estimate_pose.x], [true_pose.y, estimate_pose.y], "k--"
+                [float(self.pose.x), float(estimated_pose.x)],
+                [float(self.pose.y), float(estimated_pose.y)],
+                "k-",
+                alpha=0.8,
             )
-            plt.arrow(
-                x=estimate_pose.x,
-                y=estimate_pose.y,
-                dx=0.1 * np.cos(estimate_pose.theta),
-                dy=0.1 * np.sin(estimate_pose.theta),
-                width=0.01,
-                color="blue",
-            )
-            plt.arrow(
-                x=true_pose.x,
-                y=true_pose.y,
-                dx=0.1 * np.cos(true_pose.theta),
-                dy=0.1 * np.sin(true_pose.theta),
-                width=0.01,
-                color="red",
-            )
+            self.plot_pose(pose=estimated_pose, color="blue")
+            self.plot_pose(pose=self.pose, color="red")
             plt.draw()
             plt.pause(0.05)
 
-        plt.show()
-        plt.close()
+    @staticmethod
+    def state_to_se2(state: np.ndarray) -> SE2:
+        """Map the state vector to SE2."""
+        return SE2(x=state[0, 0], y=state[1, 0], theta=state[2, 0])
+
+    def add_measurement_to_plot(self, measurement, state: np.ndarray) -> None:
+        """Plot the simulation results."""
+        m = measurement.as_vector()
+        pose = self.state_to_se2(state=state)
+        x1, x2 = pose.x, pose.x + m[0, 0] * np.cos(pose.theta + m[1, 0])
+        y1, y2 = pose.y, pose.y + m[0, 0] * np.sin(pose.theta + m[1, 0])
+        plt.plot([x1, x2], [y1, y2], "k-", alpha=0.2)
+
+    @staticmethod
+    def plot_pose(pose, color):
+        """Add a drawing to the plot of a pose."""
+        plt.plot([pose.x, pose.x], [pose.y, pose.y], "k-", alpha=0.8)
+        plt.arrow(
+            x=pose.x,
+            y=pose.y,
+            dx=0.1 * np.cos(pose.theta),
+            dy=0.1 * np.sin(pose.theta),
+            width=0.01,
+            color=color,
+        )
+
+    def add_pose_to_plot(self, pose):
+        """Add a drawing to the plot of the estimate and true poses."""
+        plt.plot([self.pose.x, pose.x], [self.pose.y, pose.y], "k-", alpha=0.8)
+        self.plot_pose(pose=pose, color="blue")
+        self.plot_pose(pose=self.pose, color="red")
+        plt.draw()
+        plt.pause(0.05)
