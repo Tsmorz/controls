@@ -32,3 +32,6 @@ MAP_DIM = (10, 10)
 
 # Unit definitions
 DEFAULT_UNITS = "m"
+
+# rotations
+EULER_ORDER = "XYZ"

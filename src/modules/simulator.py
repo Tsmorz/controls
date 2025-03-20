@@ -7,8 +7,8 @@ import numpy as np
 from loguru import logger
 
 from config.definitions import DEFAULT_DISCRETIZATION
+from src.data_classes.lie_algebra import SE2
 from src.data_classes.map import Feature
-from src.data_classes.pose import SE2
 from src.data_classes.sensors import Bearing, Distance, DistanceAndBearing, SensorType
 from src.modules.state_space import StateSpaceLinear, StateSpaceNonlinear
 

@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from config.definitions import DEFAULT_DT
-from src.data_classes.pose import SE2
+from src.data_classes.lie_algebra import SE2
 from src.data_classes.state_space import StateSpaceData
 from src.modules.simulator import mass_spring_damper_model, robot_model
 from src.modules.state_space import StateSpaceLinear, StateSpaceNonlinear

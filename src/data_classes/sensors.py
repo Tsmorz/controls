@@ -4,8 +4,8 @@ from enum import Enum, auto
 
 import numpy as np
 
+from src.data_classes.lie_algebra import SE2
 from src.data_classes.map import Feature
-from src.data_classes.pose import SE2
 
 
 class SensorType(Enum):

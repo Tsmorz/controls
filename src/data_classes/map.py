@@ -1,6 +1,6 @@
 """Add a doc string to my files."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import numpy as np
 from loguru import logger
@@ -17,23 +17,25 @@ class Feature:
     y: float
 
 
-@dataclass
 class Map:
     """Dataclass to store features for a map."""
 
-    features: list[Feature] = field(default_factory=list)
+    def __init__(self, features=None):
+        if features is None:
+            features = []
+        self.features: list[Feature] = features
 
-    def append_feature(self, new_feature: Feature) -> None:
+    def append_feature(self, feature: Feature) -> None:
         """Append a feature to the map.
 
-        :param new_feature: Feature to be appended
+        :param feature: Feature to be appended
         :return: None
         """
-        if self.feature_already_found(new_feature):
-            logger.warning(f"Revisited landmark with I.D. {new_feature.id}.")
+        if self.feature_already_found(feature):
+            logger.warning(f"Revisited landmark with I.D. {feature.id}.")
         else:
-            self.features.append(new_feature)
-            logger.info(f"Added landmark with I.D. {new_feature.id}.")
+            self.features.append(feature)
+            logger.info(f"Added landmark with I.D. {feature.id}.")
 
     def feature_already_found(self, new_feature: Feature) -> bool:
         """Check if the feature already exists.

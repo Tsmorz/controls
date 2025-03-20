@@ -212,7 +212,7 @@ class StateSpaceNonlinear:
         x_new = np.zeros_like(x)
         xu = np.vstack((x, u))
         for ii, func in enumerate(self.motion_model):
-            x_new[ii, 0] = func(xu)[0]
+            x_new[ii, 0] = func(xu)
         return x_new
 
     def predict_z(
@@ -229,8 +229,8 @@ class StateSpaceNonlinear:
         xu = np.vstack((x, u))
         if measurement_args is None:
             for ii, func in enumerate(self.measurement_model):
-                z_pred[ii, 0] = func(xu)[0]
+                z_pred[ii, 0] = func(xu)
         else:
             for ii, func in enumerate(self.measurement_model):
-                z_pred[ii, 0] = func(xu, measurement_args)[0]
+                z_pred[ii, 0] = func(xu, measurement_args)
         return z_pred

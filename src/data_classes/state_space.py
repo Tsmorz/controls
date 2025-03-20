@@ -111,3 +111,11 @@ def plot_history(
 
     plt.show()
     plt.close()
+
+
+@dataclass
+class Velocity:
+    """Represent the velocity as a dataclass."""
+
+    x: float | np.ndarray
+    y: float | np.ndarray

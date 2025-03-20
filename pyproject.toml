@@ -44,7 +44,7 @@ lint.select = [
     "PL",   # pylint (general best practices)
     "RUF",  # Ruff-specific rules
     "T20",
-    "F841"
+    "F841",
 ]
 
 # Exclude some noisy or unnecessary rules
@@ -59,7 +59,7 @@ lint.ignore = [
     "E203",  # whitespace before ':'
     "E731",  # Do not assign a `lambda` expression, use a `def`
     "D107",  # Missing docstring in `__init__`
-
+    "PLR2004",  # Magic value used in comparison
 ]
 
 # Automatically fix issues where possible

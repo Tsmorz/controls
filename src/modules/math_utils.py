@@ -3,7 +3,87 @@
 import numpy as np
 import scipy
 from loguru import logger
+from scipy.optimize import minimize
+from scipy.spatial.transform import Rotation as Rot
 from sympy import Matrix
+
+from config.definitions import EULER_ORDER
+
+
+def skew_matrix(vector: np.ndarray) -> np.ndarray:
+    """Calculate the skew symmetric matrix from a given vector.
+
+    :param vector: A 3D vector represented as a numpy array.
+    :return: The skew symmetric matrix of the given vector.
+    """
+    dim = len(np.shape(vector))
+    if dim == 2:
+        vector = np.reshape(vector, (3,))
+    if len(vector) != 3:
+        raise ValueError("Input vector must have a dimension of 3 or less.")
+
+    sk = np.array(
+        [
+            [0.0, -vector[2], vector[1]],
+            [vector[2], 0.0, -vector[0]],
+            [-vector[1], vector[0], 0.0],
+        ]
+    )
+    return sk
+
+
+def roll_pitch_yaw_from_matrix(
+    matrix: np.ndarray, order: str = EULER_ORDER, degrees: bool = True
+) -> np.ndarray:
+    """Find the roll, pitch, and yaw angles from the given matrix.
+
+    :param matrix: A 3x3 rotation matrix.
+    :param order: The order of Euler angles (e.g., XYZ, ZYX).
+    :param degrees: If True, return angles in degrees, otherwise in radians.
+    :return: Roll, pitch, and yaw angles in the specified order and units.
+    """
+    return Rot.from_matrix(cls_1=np.ndarray, matrix=matrix).as_euler(order, degrees)
+
+
+def align_to_gravity(
+    g_vector: np.ndarray, order: str = EULER_ORDER, degrees: bool = True
+) -> np.ndarray:
+    """Find the best roll, pitch, and yaw angles that align with the gravity vector.
+
+    :param g_vector: acceleration values in m/s^2
+    :param order: The order of Euler angles (e.g., XYZ, ZYX).
+    :param degrees: If True, return angles in degrees, otherwise in radians.
+    :return: Rotation matrix that best aligns with gravity
+    """
+    x0 = np.zeros(3)
+    residual = minimize(
+        orientation_error,
+        x0,
+        method="nelder-mead",
+        args=g_vector,
+        options={"xatol": 1e-8, "disp": True},
+    )
+    return Rot.from_euler(seq=order, angles=residual.x, degrees=degrees).as_matrix()
+
+
+def orientation_error(
+    angles: np.ndarray,
+    g_vector: np.ndarray,
+    order: str = EULER_ORDER,
+    degrees: bool = True,
+) -> float:
+    """Find the orientation that would best align with the gravity vector.
+
+    :param angles: Roll, pitch, and yaw angles in degrees
+    :param g_vector: Gravity vector
+    :param order: The order of Euler angles (e.g., XYZ, ZYX).
+    :param degrees: If True, angles are in degrees, otherwise in radians.
+    :return: Error between the gravity vector and the projected vector in the m/s^2
+    """
+    gravity = np.linalg.norm(g_vector)
+    rot = Rot.from_euler(order, angles, degrees=degrees).as_matrix()
+    error = np.linalg.norm(g_vector - gravity * rot[2, :])
+    return float(error)
 
 
 def matrix_exponential(matrix: np.ndarray, t: float = 1.0) -> np.ndarray:
@@ -44,3 +124,29 @@ def symmetrize_matrix(matrix: np.ndarray) -> np.ndarray:
         raise ValueError(msg)
 
     return (matrix + matrix.T) / 2
+
+
+if __name__ == "__main__":
+    euler_order = "XYZ"
+    dt = 0.01
+    grav = 9.81
+
+    # define the full state
+    rot = np.eye(3)
+    rpy = Rot.from_matrix(matrix=rot).as_euler(euler_order, degrees=True)
+
+    vel = np.zeros((3, 1))
+    pos = np.zeros((3, 1))
+
+    # record the measurements
+    acc = np.zeros((3, 1))
+    omega = np.zeros((3, 1))
+
+    # process measurements
+    omega_exp = matrix_exponential(skew_matrix(omega), t=dt)
+    rot = rot @ omega_exp
+
+    # update the new state
+    res = acc - grav * rot @ np.array([[0], [0], [1]])
+    vel += res * dt
+    pos += vel * dt
