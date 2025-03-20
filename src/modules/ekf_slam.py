@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from loguru import logger
 
-from src.data_classes.map import Feature, Map
-from src.data_classes.pose import SE2
+from src.data_classes.lie_algebra import SE2
+from src.data_classes.map import Feature, make_random_map_planar
 from src.data_classes.sensors import SensorType
 from src.data_classes.slam import PoseMap
 from src.modules.extended_kalman import ExtendedKalmanFilter
@@ -95,8 +95,7 @@ def main() -> None:
         steps=100,
     )
 
-    true_map = Map()
-    true_map.make_random_map_planar(num_features=3, dim=(15, 15))
+    true_map = make_random_map_planar(num_features=3, dim=(15, 15))
 
     linear_vel = 0.5
     for time, angular_vel in enumerate(sim.controls):

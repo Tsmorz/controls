@@ -10,8 +10,8 @@ from loguru import logger
 from config.definitions import (
     DEFAULT_DISCRETIZATION,
 )
-from src.data_classes.map import Map
-from src.data_classes.pose import SE2
+from src.data_classes.lie_algebra import SE2
+from src.data_classes.map import make_random_map_planar
 from src.data_classes.sensors import SensorType
 from src.data_classes.state_space import StateSpaceData, plot_history
 from src.modules.controller import full_state_feedback, get_control_input
@@ -115,8 +115,7 @@ def run_ekf_pipeline() -> None:
         steps=100,
     )
 
-    sim_map = Map()
-    sim_map.make_random_map_planar(num_features=3, dim=(15, 15))
+    sim_map = make_random_map_planar(num_features=3, dim=(15, 15))
 
     for time, omega in enumerate(sim.controls):
         u = np.array([[0.5], [omega]])

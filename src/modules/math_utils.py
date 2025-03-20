@@ -141,41 +141,47 @@ def apply_angular_velocity(
 
 
 def apply_linear_acceleration(
+    pos: np.ndarray,
+    vel: np.ndarray,
+    rot: np.ndarray,
     accel: np.ndarray,
-    rotation_matrix: np.ndarray,
-    position: np.ndarray,
-    velocity: np.ndarray,
     dt: float,
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Apply linear velocity vector to a rotation matrix, position, and velocity.
 
+    :param pos: Current position vector represented as a numpy array.
+    :param vel: Current velocity vector represented as a numpy array.
+    :param rot: Current rotation matrix.
     :param accel: Linear acceleration vector represented as a numpy array.
-    :param rotation_matrix: A 3x3 rotation matrix.
-    :param position: Current position vector represented as a numpy array.
-    :param velocity: Current velocity vector represented as a numpy array.
     :param dt: Time interval in seconds.
     :return: Updated position and velocity vectors.
     """
-    residual = accel - GRAVITY_ACCEL * rotation_matrix @ np.array([[0], [0], [1]])
-    velocity += residual * dt
-    position += velocity * dt
-    return position, velocity
+    residual = accel - GRAVITY_ACCEL * rot @ np.array([[0], [0], [1]])
+    vel += residual * dt
+    pos += vel * dt
+    return pos, vel, rot
 
 
 if __name__ == "__main__":
     # define the full state
-    rot = np.eye(3)
-    rpy = Rot.from_matrix(matrix=rot).as_euler(euler_order=EULER_ORDER, degrees=True)
-
-    vel = np.zeros((3, 1))
+    dt = 0.01
     pos = np.zeros((3, 1))
+    vel = np.zeros((3, 1))
+    rot = np.eye(3)
 
     # record the measurements
-    acc = np.zeros((3, 1))
-    omega = np.zeros((3, 1))
+    for _ii in range(100):
+        acc = np.array([[0.0], [0.0], [0.0]])
+        acc += np.reshape(rot[-1, :] * GRAVITY_ACCEL, (3, 1))
+        omega = np.array([[0.0], [0.0], [5.0]])
 
-    # process measurements
-    rot = apply_angular_velocity(matrix=rot, omegas=omega, dt=0.01)
-    pos, vel = apply_linear_acceleration(
-        accel=acc, rotation_matrix=rot, position=pos, velocity=vel, dt=0.01
-    )
+        # process measurements
+        rot = apply_angular_velocity(matrix=rot, omegas=omega, dt=dt)
+        pos, vel, rot = apply_linear_acceleration(
+            pos=pos, vel=vel, rot=rot, accel=acc, dt=dt
+        )
+
+        logger.info(f"Pos.T: {pos.T} m")
+        logger.info(f"Vel.T: {vel.T} m/s")
+        rpy = Rot.from_matrix(matrix=rot).as_euler(EULER_ORDER, degrees=True)
+        logger.info(f"Roll, pitch, yaw: {rpy[0]:.2f}, {rpy[1]:.2f}, {rpy[2]:.2f} (deg)")

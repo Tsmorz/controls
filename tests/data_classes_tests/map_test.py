@@ -2,7 +2,12 @@
 
 import pytest
 
-from src.data_classes.map import Feature, Map
+from src.data_classes.map import (
+    Feature,
+    Map,
+    make_box_map_planar,
+    make_random_map_planar,
+)
 
 
 def test_map_creation() -> None:
@@ -41,8 +46,7 @@ def test_map_box() -> None:
     num_features = 100
 
     # Act
-    map_object = Map()
-    map_object.make_box_map_planar(num_features=num_features)
+    map_object = make_box_map_planar(num_features=num_features)
 
     # Assert
     assert len(map_object.features) == num_features
@@ -54,8 +58,7 @@ def test_map_random():
     num_features = 100
 
     # Act
-    map_object = Map()
-    map_object.make_random_map_planar(num_features=num_features)
+    map_object = make_random_map_planar(num_features=num_features)
 
     # Assert
     assert len(map_object.features) == num_features
