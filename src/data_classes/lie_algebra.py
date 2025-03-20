@@ -1,11 +1,7 @@
 """Add a doc string to my files."""
 
-from typing import Optional
-
 import numpy as np
-import numpy.typing as npt
-
-from config.definitions import DEFAULT_UNITS, DEFAULT_VARIANCE
+from loguru import logger
 
 
 class SE2:
@@ -16,36 +12,36 @@ class SE2:
         x: float | np.ndarray = 0.0,
         y: float | np.ndarray = 0.0,
         theta: float | np.ndarray = 0.0,
-        covariance: Optional[np.ndarray] = None,
-        units: str = DEFAULT_UNITS,
     ):
         self.x: float | np.ndarray = x
         self.y: float | np.ndarray = y
         self.theta: float | np.ndarray = theta
-        if covariance is None:
-            covariance = DEFAULT_VARIANCE * np.eye(2)
-        self.covariance: np.ndarray = covariance
-        self.units: str = units
 
     def __str__(self):  # pragma: no cover
         """Return a string representation of the pose."""
-        msg = (
-            f"SE2 Pose=(x:{self.x:.2f} {self.units}, "
-            f"y:{self.y:.2f} {self.units}, "
-            f"theta:{self.theta:.2f} deg)"
-        )
+        msg = f"SE2 Pose=(x:{self.x:.2f}, y:{self.y:.2f}theta:{self.theta:.2f})"
         return msg
 
-    def as_vector(self) -> npt.NDArray[np.float64]:
+    def __matmul__(self, other):
+        """Perform a matrix multiplication between two SE2 matrices."""
+        if isinstance(other, SE2):
+            new_se2 = self.as_matrix() @ other.as_matrix()
+            x = new_se2[0, -1]
+            y = new_se2[1, -1]
+            theta = np.atan2(new_se2[1, 0], new_se2[0, 0])
+            return SE2(x=x, y=y, theta=theta)
+        else:
+            msg = "Matrix multiplication is only supported between SE2 poses."
+            logger.error(msg)
+            raise ValueError(msg)
+
+    def as_vector(self) -> np.ndarray:
         """Represent the data as a 3-by-1 matrix."""
-        return np.asarray(
-            np.array([[self.x], [self.y], [self.theta]]), dtype=np.float64
-        )
+        return np.array([[self.x], [self.y], [self.theta]])
 
     def as_matrix(self) -> np.ndarray:
         """Represent the data as a 3-by-3 matrix."""
-        matrix = np.ones(3)
-        matrix[:2, :2] = np.array(
+        matrix = np.array(
             [
                 [np.cos(self.theta), -np.sin(self.theta), self.x],
                 [np.sin(self.theta), np.cos(self.theta), self.y],
