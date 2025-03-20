@@ -35,3 +35,6 @@ DEFAULT_UNITS = "m"
 
 # rotations
 EULER_ORDER = "XYZ"
+
+# gravity
+GRAVITY_ACCEL = 9.81

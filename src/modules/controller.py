@@ -89,7 +89,7 @@ class LQRController:
         :return: List of state feedback gains for each time step.
         """
         cost = self.Q  # Initialize terminal cost
-        gain_list: list[np.ndarray] = []
+        gain_list = []
 
         for _ in range(self.num_steps):
             gain = np.linalg.inv(self.B.T @ cost @ self.B + self.R) @ (

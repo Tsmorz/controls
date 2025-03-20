@@ -1,6 +1,7 @@
 """Add a doc string to my files."""
 
 from dataclasses import dataclass
+from typing import Optional
 
 import numpy as np
 from loguru import logger
@@ -20,10 +21,10 @@ class Feature:
 class Map:
     """Dataclass to store features for a map."""
 
-    def __init__(self, features=None):
+    def __init__(self, features: Optional[list[Feature]] = None):
         if features is None:
             features = []
-        self.features: list[Feature] = features
+        self.features = features
 
     def append_feature(self, feature: Feature) -> None:
         """Append a feature to the map.

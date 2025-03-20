@@ -7,7 +7,7 @@ from scipy.optimize import minimize
 from scipy.spatial.transform import Rotation as Rot
 from sympy import Matrix
 
-from config.definitions import EULER_ORDER
+from config.definitions import EULER_ORDER, GRAVITY_ACCEL
 
 
 def skew_matrix(vector: np.ndarray) -> np.ndarray:
@@ -156,19 +156,16 @@ def apply_linear_acceleration(
     :param dt: Time interval in seconds.
     :return: Updated position and velocity vectors.
     """
-    residual = accel - grav * rotation_matrix @ np.array([[0], [0], [1]])
+    residual = accel - GRAVITY_ACCEL * rotation_matrix @ np.array([[0], [0], [1]])
     velocity += residual * dt
     position += velocity * dt
     return position, velocity
 
 
 if __name__ == "__main__":
-    euler_order = "XYZ"
-    grav = 9.81
-
     # define the full state
     rot = np.eye(3)
-    rpy = Rot.from_matrix(matrix=rot).as_euler(euler_order, degrees=True)
+    rpy = Rot.from_matrix(matrix=rot).as_euler(euler_order=EULER_ORDER, degrees=True)
 
     vel = np.zeros((3, 1))
     pos = np.zeros((3, 1))
