@@ -8,7 +8,7 @@ from loguru import logger
 from scipy.signal import cont2discrete
 
 from config.definitions import EPSILON
-from src.data_classes.state_space import StateSpaceData, plot_history
+from src.data_classes.state_history import StateHistory, plot_history
 
 
 class StateSpaceLinear:
@@ -57,9 +57,7 @@ class StateSpaceLinear:
         """
         return self.A @ x + self.B @ u
 
-    def step_response(
-        self, delta_t: float, plot_response: bool = True
-    ) -> StateSpaceData:
+    def step_response(self, delta_t: float, plot_response: bool = True) -> StateHistory:
         """Compute the step response of the state-space model.
 
         :param delta_t: Time step size
@@ -86,7 +84,7 @@ class StateSpaceLinear:
 
     def impulse_response(
         self, delta_t: float, plot_response: bool = True
-    ) -> StateSpaceData:
+    ) -> StateHistory:
         """Compute the step response of the state-space model.
 
         :param delta_t: Time step size
@@ -114,14 +112,14 @@ class StateSpaceLinear:
 
     def solve_trajectory(
         self, time: list[float], x0: np.ndarray, control_input: list[np.ndarray]
-    ) -> StateSpaceData:
+    ) -> StateHistory:
         """Solve the state-space model for given time, control input, and initial state.
 
         :param time: Time array
         :param x0: Initial state
         :param control_input: Control input array
         """
-        state_history = StateSpaceData(control=control_input, time=time, state=[x0])
+        state_history = StateHistory(control=control_input, time=time, state=[x0])
         x = x0
         for ii, _t in enumerate(time[:-1]):
             u = control_input[ii]

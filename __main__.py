@@ -13,7 +13,7 @@ from config.definitions import (
 from src.data_classes.lie_algebra import SE2
 from src.data_classes.map import make_random_map_planar
 from src.data_classes.sensors import SensorType
-from src.data_classes.state_space import StateSpaceData, plot_history
+from src.data_classes.state_history import StateHistory, plot_history
 from src.modules.controller import full_state_feedback, get_control_input
 from src.modules.extended_kalman import ExtendedKalmanFilter
 from src.modules.kalman import KalmanFilter
@@ -70,7 +70,7 @@ def run_kf_pipeline() -> None:
         initial_state=kf.x,
     )
 
-    sim_history = StateSpaceData()
+    sim_history = StateHistory()
 
     # Generate control inputs, measurements, and update the Kalman filter
     for t in time:

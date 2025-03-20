@@ -35,7 +35,7 @@ class KalmanFilter:
         self.Q: np.ndarray = process_noise
 
         if measurement_noise is None:
-            measurement_noise = MEASUREMENT_NOISE * np.eye(len(state_space.B))
+            measurement_noise = MEASUREMENT_NOISE * np.eye(len(state_space.C))
         self.R: np.ndarray = measurement_noise
         self.x: np.ndarray = initial_x
         self.cov: np.ndarray = initial_covariance

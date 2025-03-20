@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from config.definitions import DEFAULT_VARIANCE
+from config.definitions import DEFAULT_VARIANCE, MEASUREMENT_NOISE, PROCESS_NOISE
 from src.modules.kalman import KalmanFilter
 from src.modules.simulator import mass_spring_damper_model
 from tests.conftest import TEST_DECIMALS_ACCURACY, TEST_DT
@@ -12,15 +12,13 @@ def test_kalman_filter_initialization() -> None:
     """Test the initialization of the Kalman filter."""
     ss = mass_spring_damper_model(discretization_dt=TEST_DT)
 
-    Q = DEFAULT_VARIANCE * np.eye(2)
-    R = DEFAULT_VARIANCE * np.eye(1)
+    exp_Q = PROCESS_NOISE * np.eye(2)
+    exp_R = MEASUREMENT_NOISE * np.eye(2)
     initial_state = np.array([[1.0], [1.0]])
     initial_covariance = np.eye(2)
 
     kf = KalmanFilter(
         state_space=ss,
-        process_noise=Q,
-        measurement_noise=R,
         initial_x=initial_state,
         initial_covariance=initial_covariance,
     )
@@ -29,8 +27,8 @@ def test_kalman_filter_initialization() -> None:
     assert np.array_equal(kf.state_space.A, ss.A)
     assert np.array_equal(kf.state_space.B, ss.B)
     assert np.array_equal(kf.state_space.C, ss.C)
-    assert np.array_equal(kf.Q, Q)
-    assert np.array_equal(kf.R, R)
+    assert np.array_equal(kf.Q, exp_Q)
+    assert np.array_equal(kf.R, exp_R)
     assert np.array_equal(kf.cov, initial_covariance)
     assert np.array_equal(kf.x, initial_state)
 

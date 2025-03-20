@@ -10,7 +10,7 @@ from config.definitions import FIG_SIZE, LEGEND_LOC, PLOT_ALPHA, PLOT_MARKER_SIZ
 
 
 @dataclass
-class StateSpaceData:
+class StateHistory:
     """A state history object to store history of state information."""
 
     time: list[float] = field(default_factory=list)
@@ -39,7 +39,7 @@ class StateSpaceData:
 
 
 def plot_history(
-    history: StateSpaceData, title: str = "State Space History"
+    history: StateHistory, title: str = "State Space History"
 ) -> None:  # pragma: no cover
     """Plot the history of state space model.
 

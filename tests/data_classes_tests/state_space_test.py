@@ -5,7 +5,7 @@ import pytest
 
 from config.definitions import DEFAULT_DT
 from src.data_classes.lie_algebra import SE2
-from src.data_classes.state_space import StateSpaceData
+from src.data_classes.state_history import StateHistory
 from src.modules.simulator import mass_spring_damper_model, robot_model
 from src.modules.state_space import StateSpaceLinear, StateSpaceNonlinear
 from tests.conftest import TEST_DECIMALS_ACCURACY
@@ -14,8 +14,8 @@ from tests.conftest import TEST_DECIMALS_ACCURACY
 def test_state_space() -> None:
     """Test that the state space is initialized correctly."""
     # Arrange
-    A = np.array([[1, 0], [0, 1]])
-    B = np.array([[1], [0]])
+    A = np.array([[1.0, 0.0], [0.0, 1.0]])
+    B = np.array([[1.0], [0.0]])
 
     # Act
     ss = StateSpaceLinear(A, B)
@@ -23,6 +23,22 @@ def test_state_space() -> None:
     # Assert
     np.testing.assert_array_almost_equal(ss.A, A)
     np.testing.assert_array_almost_equal(ss.B, B)
+    np.testing.assert_array_almost_equal(ss.C, np.array([[1, 0], [0, 1]]))
+    np.testing.assert_array_almost_equal(ss.D, np.array([[0], [0]]))
+
+
+def test_state_space_no_b() -> None:
+    """Test that the state space is initialized correctly."""
+    # Arrange
+    A = np.array([[1.0, 0.0], [0.0, 1.0]])
+    exp_B = np.array([[0.0], [0.0]])
+
+    # Act
+    ss = StateSpaceLinear(A)
+
+    # Assert
+    np.testing.assert_array_almost_equal(ss.A, A)
+    np.testing.assert_array_almost_equal(ss.B, exp_B)
     np.testing.assert_array_almost_equal(ss.C, np.array([[1, 0], [0, 1]]))
     np.testing.assert_array_almost_equal(ss.D, np.array([[0], [0]]))
 
@@ -48,7 +64,7 @@ def test_continuous_to_discrete() -> None:
 def test_state_space_data_append():
     """Test that the state space data can append results."""
     # Arrange
-    data = StateSpaceData()
+    data = StateHistory()
 
     # Act
     data.append_step(t=0.1, x=np.array([0.1, 0.2]), cov=np.eye(2), u=np.array([0.3]))
@@ -85,7 +101,7 @@ def test_state_space_incorrect_dims() -> None:
     B = np.array([[1, 2]])
 
     # Act and Assert
-    with np.testing.assert_raises(ValueError):
+    with pytest.raises(ValueError):
         StateSpaceLinear(A, B)
 
 
@@ -99,7 +115,7 @@ def test_step_response() -> None:
     data = ss.step_response(dt, plot_response=False)
 
     # Assert
-    assert isinstance(data, StateSpaceData)
+    assert isinstance(data, StateHistory)
     assert len(data.time) > 0
     np.testing.assert_array_almost_equal(data.time[-1], 10 - dt)
     assert len(data.state) > 0
@@ -119,7 +135,7 @@ def test_impulse_response() -> None:
     data = ss.impulse_response(dt, plot_response=False)
 
     # Assert
-    assert isinstance(data, StateSpaceData)
+    assert isinstance(data, StateHistory)
     assert len(data.time) > 0
     np.testing.assert_almost_equal(data.time[-1], 10 - dt)
     assert len(data.state) > 0
