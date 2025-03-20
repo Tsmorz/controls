@@ -81,8 +81,8 @@ def orientation_error(
     :return: Error between the gravity vector and the projected vector in the m/s^2
     """
     gravity = np.linalg.norm(g_vector)
-    rot = Rot.from_euler(order, angles, degrees=degrees).as_matrix()
-    error = np.linalg.norm(g_vector - gravity * rot[2, :])
+    rotation = Rot.from_euler(order, angles, degrees=degrees).as_matrix()
+    error = np.linalg.norm(g_vector - gravity * rotation[2, :])
     return float(error)
 
 
@@ -126,9 +126,44 @@ def symmetrize_matrix(matrix: np.ndarray) -> np.ndarray:
     return (matrix + matrix.T) / 2
 
 
+def apply_angular_velocity(
+    matrix: np.ndarray, omegas: np.ndarray, dt: float
+) -> np.ndarray:
+    """Apply angular velocity vector to a rotation matrix.
+
+    :param matrix: A 3x3 rotation matrix.
+    :param omegas: Angular velocity vector represented as a numpy array.
+    :param dt: Time interval in seconds.
+    :return: Updated rotation matrix and new angular velocity vector.
+    """
+    omega_exp = matrix_exponential(skew_matrix(omegas), t=dt)
+    return matrix @ omega_exp
+
+
+def apply_linear_acceleration(
+    accel: np.ndarray,
+    rotation_matrix: np.ndarray,
+    position: np.ndarray,
+    velocity: np.ndarray,
+    dt: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Apply linear velocity vector to a rotation matrix, position, and velocity.
+
+    :param accel: Linear acceleration vector represented as a numpy array.
+    :param rotation_matrix: A 3x3 rotation matrix.
+    :param position: Current position vector represented as a numpy array.
+    :param velocity: Current velocity vector represented as a numpy array.
+    :param dt: Time interval in seconds.
+    :return: Updated position and velocity vectors.
+    """
+    residual = accel - grav * rotation_matrix @ np.array([[0], [0], [1]])
+    velocity += residual * dt
+    position += velocity * dt
+    return position, velocity
+
+
 if __name__ == "__main__":
     euler_order = "XYZ"
-    dt = 0.01
     grav = 9.81
 
     # define the full state
@@ -143,10 +178,7 @@ if __name__ == "__main__":
     omega = np.zeros((3, 1))
 
     # process measurements
-    omega_exp = matrix_exponential(skew_matrix(omega), t=dt)
-    rot = rot @ omega_exp
-
-    # update the new state
-    res = acc - grav * rot @ np.array([[0], [0], [1]])
-    vel += res * dt
-    pos += vel * dt
+    rot = apply_angular_velocity(matrix=rot, omegas=omega, dt=0.01)
+    pos, vel = apply_linear_acceleration(
+        accel=acc, rotation_matrix=rot, position=pos, velocity=vel, dt=0.01
+    )

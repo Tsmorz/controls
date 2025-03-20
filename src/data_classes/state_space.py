@@ -119,3 +119,4 @@ class Velocity:
 
     x: float | np.ndarray
     y: float | np.ndarray
+    z: float | np.ndarray
