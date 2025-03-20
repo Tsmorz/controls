@@ -15,7 +15,7 @@ from src.modules.state_space import StateSpaceLinear, StateSpaceNonlinear
 
 def state_to_se3(state: np.ndarray) -> SE3:
     """Map the state vector to SE2."""
-    return SE3(xyz=state[0:3, 0], roll_pitch_yaw=state[3:6, 0])
+    return SE3(xyz=state[0:3], roll_pitch_yaw=state[3:6])
 
 
 class KalmanSimulator:
@@ -98,53 +98,61 @@ def mass_spring_damper_model(
     return model
 
 
-def pos_x_func(state_control: np.ndarray) -> np.ndarray:
+def pos_x_func(state_control: np.ndarray) -> float | np.ndarray:
     """Find the x position given the state and control vectors."""
-    pos_x, pos_y, pos_z, roll, pitch, yaw, vel, omega = state_control
-    return vel * np.cos(yaw) + pos_x
+    vel, omega = state_control[-2:]
+    pose = state_to_se3(state_control[:6, 0])
+    return vel * np.cos(pose.yaw) * np.cos(pose.pitch) + pose.x
 
 
-def pos_y_func(state_control: np.ndarray) -> np.ndarray:
+def pos_y_func(state_control: np.ndarray) -> float | np.ndarray:
     """Find the y position given the state and control vectors."""
-    pos_x, pos_y, pos_z, roll, pitch, yaw, vel, omega = state_control
-    return vel * np.sin(yaw) + pos_y
+    vel, omega = state_control[-2:]
+    pose = state_to_se3(state_control[:6, 0])
+    return vel * np.sin(pose.yaw) * np.cos(pose.pitch) + pose.y
 
 
-def pos_z_func(state_control: np.ndarray) -> np.ndarray:
+def pos_z_func(state_control: np.ndarray) -> float | np.ndarray:
     """Find the y position given the state and control vectors."""
-    pos_x, pos_y, pos_z, roll, pitch, yaw, vel, omega = state_control
-    return pos_z
+    vel, omega = state_control[-2:]
+    pose = state_to_se3(state_control[:6, 0])
+    return vel * np.sin(pose.pitch) + pose.z
 
 
-def roll_func(state_control: np.ndarray) -> np.ndarray:
+def roll_func(state_control: np.ndarray) -> float | np.ndarray:
     """Find the heading given the state and control vectors."""
-    pos_x, pos_y, pos_z, roll, pitch, yaw, vel, omega = state_control
-    return roll
+    pose = state_to_se3(state_control[:6, 0])
+    return pose.roll
 
 
-def pitch_func(state_control: np.ndarray) -> np.ndarray:
+def pitch_func(state_control: np.ndarray) -> float | np.ndarray:
     """Find the heading given the state and control vectors."""
-    pos_x, pos_y, pos_z, roll, pitch, yaw, vel, omega = state_control
-    return pitch
+    pose = state_to_se3(state_control[:6, 0])
+    return pose.pitch
 
 
-def yaw_func(state_control: np.ndarray) -> np.ndarray:
+def yaw_func(state_control: np.ndarray) -> float | np.ndarray:
     """Find the heading given the state and control vectors."""
-    pos_x, pos_y, pos_z, roll, pitch, yaw, vel, omega = state_control
-    return np.array(yaw + omega)
+    vel, omega = state_control[-2:]
+    pose = state_to_se3(state_control[:6, 0])
+    return np.array(pose.yaw + omega)
 
 
-def measure_range_func(state_control: np.ndarray, feature: Feature) -> np.ndarray:
+def measure_range_func(
+    state_control: np.ndarray, feature: Feature
+) -> float | np.ndarray:
     """Find the x position given the state and control vectors."""
-    pos_x, pos_y, pos_z, roll, pitch, yaw, vel, omega = state_control
-    delta_x = feature.x - pos_x
-    delta_y = feature.y - pos_y
-    delta_z = feature.z - pos_z
+    pose = state_to_se3(state_control[:6, 0])
+    delta_x = feature.x - pose.x
+    delta_y = feature.y - pose.y
+    delta_z = feature.z - pose.z
     distance = np.sqrt(delta_x**2 + delta_y**2 + delta_z)
     return distance
 
 
-def measure_angle_func(state_control: np.ndarray, feature: Feature) -> np.ndarray:
+def measure_angle_func(
+    state_control: np.ndarray, feature: Feature
+) -> float | np.ndarray:
     """Find the y position given the state and control vectors."""
     pos_x, pos_y, pos_z, roll, pitch, yaw, vel, omega = state_control
     delta_x = feature.x - pos_x
