@@ -10,7 +10,7 @@ from loguru import logger
 from config.definitions import (
     DEFAULT_DISCRETIZATION,
 )
-from src.data_classes.lie_algebra import SE2
+from src.data_classes.lie_algebra import SE3
 from src.data_classes.map import make_random_map_planar
 from src.data_classes.sensors import SensorType
 from src.data_classes.state_history import StateHistory, plot_history
@@ -20,6 +20,7 @@ from src.modules.kalman import KalmanFilter
 from src.modules.simulator import (
     KalmanSimulator,
     SlamSimulator,
+    add_measurement_to_plot,
     mass_spring_damper_model,
     robot_model,
 )
@@ -93,18 +94,18 @@ def run_kf_pipeline() -> None:
 def run_ekf_pipeline() -> None:
     """Test the EKF algorithm."""
 
-    def state_to_se2(state: np.ndarray) -> SE2:
+    def state_to_se2(state: np.ndarray) -> SE3:
         """Map the state vector to SE2."""
-        return SE2(x=state[0, 0], y=state[1, 0], theta=state[2, 0])
+        return SE3(xyz=state[0:3, 0], roll_pitch_yaw=state[3:6, 0])
 
     logger.info("Running Extended Kalman Filter pipeline.")
 
     robot = robot_model()
-    initial_pose = SE2(x=-1.0, y=0.0, theta=0.0)
+    initial_pose = SE3(xyz=np.zeros(3), roll_pitch_yaw=np.zeros(3))
     ekf = ExtendedKalmanFilter(
         state_space_nonlinear=robot,
         initial_x=initial_pose.as_vector(),
-        initial_covariance=3 * np.eye(3),
+        initial_covariance=3 * np.eye(6),
     )
 
     sim = SlamSimulator(
@@ -133,7 +134,7 @@ def run_ekf_pipeline() -> None:
                 ekf.update(z=measurement.as_vector(), u=u, measurement_args=feature)
 
                 if measurement.type == SensorType.DISTANCE_AND_BEARING:
-                    sim.add_measurement_to_plot(measurement, state=ekf.x)
+                    add_measurement_to_plot(measurement, state=ekf.x)
 
         pose = state_to_se2(state=ekf.x)
         sim.append_estimate(estimated_pose=pose, plot_pose=True)

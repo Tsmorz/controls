@@ -4,75 +4,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 from loguru import logger
 
-from src.data_classes.lie_algebra import SE2
+from src.data_classes.lie_algebra import SE3
 from src.data_classes.map import Feature, make_random_map_planar
 from src.data_classes.sensors import SensorType
 from src.data_classes.slam import PoseMap
 from src.modules.extended_kalman import ExtendedKalmanFilter
-from src.modules.simulator import SlamSimulator
-from src.modules.state_space import StateSpaceNonlinear
-
-
-def pos_x_func(state_control: np.ndarray) -> np.ndarray:
-    """Find the x position given the state and control vectors."""
-    pose = SE2(x=state_control[0, 0], y=state_control[1, 0], theta=state_control[2, 0])
-    vel, omega = state_control[-2:, 0]
-    return vel * np.cos(pose.theta) + pose.x
-
-
-def pos_y_func(state_control: np.ndarray) -> np.ndarray:
-    """Find the y position given the state and control vectors."""
-    pose = SE2(x=state_control[0, 0], y=state_control[1, 0], theta=state_control[2, 0])
-    vel, omega = state_control[-2:, 0]
-    return vel * np.sin(pose.theta) + pose.y
-
-
-def heading_func(state_control: np.ndarray) -> np.ndarray:
-    """Find the heading given the state and control vectors."""
-    pose = SE2(x=state_control[0, 0], y=state_control[1, 0], theta=state_control[2, 0])
-    vel, omega = state_control[-2:, 0]
-    return np.array(pose.theta + omega)
-
-
-def measure_range_func(state_control: np.ndarray, feature: Feature) -> np.ndarray:
-    """Find the x position given the state and control vectors."""
-    pose = SE2(x=state_control[0, 0], y=state_control[1, 0], theta=state_control[2, 0])
-    delta_x = feature.x - pose.x
-    delta_y = feature.y - pose.y
-    distance = np.sqrt(delta_x**2 + delta_y**2)
-    return distance
-
-
-def measure_angle_func(state_control: np.ndarray, feature: Feature) -> np.ndarray:
-    """Find the y position given the state and control vectors."""
-    pose = SE2(x=state_control[0, 0], y=state_control[1, 0], theta=state_control[2, 0])
-    delta_x = feature.x - pose.x
-    delta_y = feature.y - pose.y
-    angle = np.arctan2(delta_y, delta_x) - pose.theta
-    return angle
-
-
-def robot_model() -> StateSpaceNonlinear:
-    """Create a StateSpaceNonlinear model of a wheeled robot."""
-    motion_model = [
-        pos_x_func,
-        pos_y_func,
-        heading_func,
-    ]
-
-    measurement_model = [
-        measure_range_func,
-        measure_angle_func,
-    ]
-
-    return StateSpaceNonlinear(
-        motion_model=motion_model, measurement_model=measurement_model
-    )
-
-
-def state_to_se2(state: np.ndarray) -> SE2:
-    """Map the state vector to SE2."""
-    return SE2(x=state[0, 0], y=state[1, 0], theta=state[2, 0])
+from src.modules.simulator import (
+    SlamSimulator,
+    add_measurement_to_plot,
+    robot_model,
+    state_to_se3,
+)
 
 
 def main() -> None:
@@ -80,11 +22,12 @@ def main() -> None:
     logger.info("Running Extended Kalman Filter pipeline.")
 
     robot = robot_model()
-    pose_map = PoseMap(pose=SE2(x=0.0, y=0.0, theta=0.0))
+    pose = SE3(xyz=np.zeros((3,)), roll_pitch_yaw=np.zeros((3,)))
+    pose_map = PoseMap(pose=pose)
     ekf = ExtendedKalmanFilter(
         state_space_nonlinear=robot,
         initial_x=pose_map.pose.as_vector(),
-        initial_covariance=3 * np.eye(3),
+        initial_covariance=3 * np.eye(pose.as_vector().shape[0]),
     )
 
     sim = SlamSimulator(
@@ -114,12 +57,12 @@ def main() -> None:
                 logger.info(f"Measurement={measurement}")
                 pose_map.map.append_feature(feature=feature_new)
 
-                logger.info(ekf.x.T)
                 ekf.update(z=measurement.as_vector(), u=u, measurement_args=feature)
                 if measurement.type == SensorType.DISTANCE_AND_BEARING:
-                    sim.add_measurement_to_plot(measurement, state=ekf.x)
+                    add_measurement_to_plot(measurement, state=ekf.x)
 
-        pose = state_to_se2(state=ekf.x)
+        logger.info(f"state: {ekf.x.T}")
+        pose = state_to_se3(state=ekf.x)
         sim.append_estimate(estimated_pose=pose, plot_pose=True)
 
     plt.show()

@@ -16,6 +16,11 @@ class Feature:
     id: int
     x: float
     y: float
+    z: float = 0.0
+
+    def as_vector(self) -> np.ndarray:
+        """Return the feature as a 3-by-1 matrix."""
+        return np.array([[self.x], [self.y], [self.z]])
 
 
 class Map:

@@ -4,7 +4,7 @@ from enum import Enum, auto
 
 import numpy as np
 
-from src.data_classes.lie_algebra import SE2
+from src.data_classes.lie_algebra import SE3
 from src.data_classes.map import Feature
 
 
@@ -21,7 +21,7 @@ class SensorType(Enum):
 class Distance:
     """Construct a distance sensor measurement."""
 
-    def __init__(self, ground_truth: SE2, features: list[Feature]):
+    def __init__(self, ground_truth: SE3, features: list[Feature]):
         dx = np.array([feature.x for feature in features]) - ground_truth.x
         dy = np.array([feature.y for feature in features]) - ground_truth.y
         self.distance: np.ndarray = np.sqrt(dx**2 + dy**2)
@@ -40,10 +40,10 @@ class Distance:
 class Bearing:
     """Construct a bearing sensor measurement."""
 
-    def __init__(self, ground_truth: SE2, features: list[Feature]):
+    def __init__(self, ground_truth: SE3, features: list[Feature]):
         dx = np.array([feature.x for feature in features]) - ground_truth.x
         dy = np.array([feature.y for feature in features]) - ground_truth.y
-        self.bearing: np.ndarray = np.arctan2(dy, dx) - ground_truth.theta
+        self.bearing: np.ndarray = np.arctan2(dy, dx) - ground_truth.yaw
         self.type = SensorType.BEARING
 
     def as_vector(self) -> np.ndarray:
@@ -59,7 +59,7 @@ class Bearing:
 class DistanceAndBearing(Distance, Bearing):
     """Construct a distance and bearing sensor measurement."""
 
-    def __init__(self, ground_truth: SE2, features: list[Feature]):
+    def __init__(self, ground_truth: SE3, features: list[Feature]):
         Distance.__init__(self, ground_truth, features)
         Bearing.__init__(self, ground_truth, features)
         self.type = SensorType.DISTANCE_AND_BEARING

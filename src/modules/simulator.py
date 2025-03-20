@@ -7,10 +7,15 @@ import numpy as np
 from loguru import logger
 
 from config.definitions import DEFAULT_DISCRETIZATION
-from src.data_classes.lie_algebra import SE2
+from src.data_classes.lie_algebra import SE3
 from src.data_classes.map import Feature
 from src.data_classes.sensors import Bearing, Distance, DistanceAndBearing, SensorType
 from src.modules.state_space import StateSpaceLinear, StateSpaceNonlinear
+
+
+def state_to_se3(state: np.ndarray) -> SE3:
+    """Map the state vector to SE2."""
+    return SE3(xyz=state[0:3, 0], roll_pitch_yaw=state[3:6, 0])
 
 
 class KalmanSimulator:
@@ -95,37 +100,56 @@ def mass_spring_damper_model(
 
 def pos_x_func(state_control: np.ndarray) -> np.ndarray:
     """Find the x position given the state and control vectors."""
-    pos_x, _, theta, vel, _ = state_control
-    return vel * np.cos(theta) + pos_x
+    pos_x, pos_y, pos_z, roll, pitch, yaw, vel, omega = state_control
+    return vel * np.cos(yaw) + pos_x
 
 
 def pos_y_func(state_control: np.ndarray) -> np.ndarray:
     """Find the y position given the state and control vectors."""
-    _, pos_y, theta, vel, _ = state_control
-    return vel * np.sin(theta) + pos_y
+    pos_x, pos_y, pos_z, roll, pitch, yaw, vel, omega = state_control
+    return vel * np.sin(yaw) + pos_y
 
 
-def heading_func(state_control: np.ndarray) -> np.ndarray:
+def pos_z_func(state_control: np.ndarray) -> np.ndarray:
+    """Find the y position given the state and control vectors."""
+    pos_x, pos_y, pos_z, roll, pitch, yaw, vel, omega = state_control
+    return pos_z
+
+
+def roll_func(state_control: np.ndarray) -> np.ndarray:
     """Find the heading given the state and control vectors."""
-    _, _, theta, vel, theta_dot = state_control
-    return np.array(theta + theta_dot)
+    pos_x, pos_y, pos_z, roll, pitch, yaw, vel, omega = state_control
+    return roll
+
+
+def pitch_func(state_control: np.ndarray) -> np.ndarray:
+    """Find the heading given the state and control vectors."""
+    pos_x, pos_y, pos_z, roll, pitch, yaw, vel, omega = state_control
+    return pitch
+
+
+def yaw_func(state_control: np.ndarray) -> np.ndarray:
+    """Find the heading given the state and control vectors."""
+    pos_x, pos_y, pos_z, roll, pitch, yaw, vel, omega = state_control
+    return np.array(yaw + omega)
 
 
 def measure_range_func(state_control: np.ndarray, feature: Feature) -> np.ndarray:
     """Find the x position given the state and control vectors."""
-    pos_x, pos_y, _, _, _ = state_control
+    pos_x, pos_y, pos_z, roll, pitch, yaw, vel, omega = state_control
     delta_x = feature.x - pos_x
     delta_y = feature.y - pos_y
-    distance = np.sqrt(delta_x**2 + delta_y**2)
+    delta_z = feature.z - pos_z
+    distance = np.sqrt(delta_x**2 + delta_y**2 + delta_z)
     return distance
 
 
 def measure_angle_func(state_control: np.ndarray, feature: Feature) -> np.ndarray:
     """Find the y position given the state and control vectors."""
-    pos_x, pos_y, theta, _, _ = state_control
+    pos_x, pos_y, pos_z, roll, pitch, yaw, vel, omega = state_control
     delta_x = feature.x - pos_x
     delta_y = feature.y - pos_y
-    angle = np.arctan2(delta_y, delta_x) - theta
+    angle = np.arctan2(delta_y, delta_x) - yaw
     return angle
 
 
@@ -134,7 +158,10 @@ def robot_model() -> StateSpaceNonlinear:
     motion_model = [
         pos_x_func,
         pos_y_func,
-        heading_func,
+        pos_z_func,
+        roll_func,
+        pitch_func,
+        yaw_func,
     ]
 
     measurement_model = [
@@ -147,6 +174,15 @@ def robot_model() -> StateSpaceNonlinear:
     )
 
 
+def add_measurement_to_plot(measurement, state: np.ndarray) -> None:
+    """Plot the simulation results."""
+    m = measurement.as_vector()
+    pose = state_to_se3(state=state)
+    x1, x2 = pose.x, pose.x + m[0, 0] * np.cos(pose.yaw + m[1, 0])
+    y1, y2 = pose.y, pose.y + m[0, 0] * np.sin(pose.yaw + m[1, 0])
+    plt.plot([x1, x2], [y1, y2], "k-", alpha=0.2)
+
+
 class SlamSimulator:
     """Kalman filter implementation."""
 
@@ -155,7 +191,7 @@ class SlamSimulator:
         state_space_nl: StateSpaceNonlinear,
         process_noise: np.ndarray,
         measurement_noise: np.ndarray,
-        initial_pose: SE2,
+        initial_pose: SE3,
         steps: int = 100,
     ) -> None:
         """Initialize the Kalman Filter.
@@ -169,8 +205,8 @@ class SlamSimulator:
         self.state_space_nl = state_space_nl
         self.Q: np.ndarray = process_noise
         self.R: np.ndarray = measurement_noise
-        self.pose: SE2 = initial_pose
-        self.history: list[tuple[SE2, SE2]] = []
+        self.pose: SE3 = initial_pose
+        self.history: list[tuple[SE3, SE3]] = []
         self.controls = get_angular_velocities_for_box(steps=steps, radius_steps=6)
 
         plt.figure(figsize=(8, 8)).add_subplot(111)
@@ -181,16 +217,16 @@ class SlamSimulator:
         plt.title("Robot Localization")
         self.figure: plt.Figure
 
-    def step(self, u: np.ndarray) -> SE2:
+    def step(self, u: np.ndarray) -> SE3:
         """Predict the next state and error covariance.
 
         :param u: Control input
         """
         scale = np.diag(self.Q)
         scale = np.reshape(scale, (self.Q.shape[0], 1))
-        noise = np.random.normal(loc=0.0, scale=scale, size=(3, 1))
+        noise = np.random.normal(loc=0.0, scale=scale, size=(self.Q.shape[0], 1))
         x = self.state_space_nl.step(x=self.pose.as_vector(), u=u) + noise
-        self.pose = SE2(x=x[0, 0], y=x[1, 0], theta=x[2, 0])
+        self.pose = SE3(xyz=x[0:3], roll_pitch_yaw=x[3:6])
         return self.pose
 
     def get_measurement(
@@ -213,7 +249,7 @@ class SlamSimulator:
             logger.error(msg)
             raise ValueError(msg)
 
-    def append_estimate(self, estimated_pose: SE2, plot_pose: bool) -> None:
+    def append_estimate(self, estimated_pose: SE3, plot_pose: bool) -> None:
         """Update the state estimate based on an estimated pose."""
         self.history.append((estimated_pose, self.pose))
 
@@ -230,27 +266,14 @@ class SlamSimulator:
             plt.pause(0.05)
 
     @staticmethod
-    def state_to_se2(state: np.ndarray) -> SE2:
-        """Map the state vector to SE2."""
-        return SE2(x=state[0, 0], y=state[1, 0], theta=state[2, 0])
-
-    def add_measurement_to_plot(self, measurement, state: np.ndarray) -> None:
-        """Plot the simulation results."""
-        m = measurement.as_vector()
-        pose = self.state_to_se2(state=state)
-        x1, x2 = pose.x, pose.x + m[0, 0] * np.cos(pose.theta + m[1, 0])
-        y1, y2 = pose.y, pose.y + m[0, 0] * np.sin(pose.theta + m[1, 0])
-        plt.plot([x1, x2], [y1, y2], "k-", alpha=0.2)
-
-    @staticmethod
     def plot_pose(pose, color):
         """Add a drawing to the plot of a pose."""
         plt.plot([pose.x, pose.x], [pose.y, pose.y], "k-", alpha=0.8)
         plt.arrow(
             x=pose.x,
             y=pose.y,
-            dx=0.1 * np.cos(pose.theta),
-            dy=0.1 * np.sin(pose.theta),
+            dx=0.1 * np.cos(pose.yaw),
+            dy=0.1 * np.sin(pose.yaw),
             width=0.01,
             color=color,
         )

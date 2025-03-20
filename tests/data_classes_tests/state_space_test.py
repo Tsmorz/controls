@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from config.definitions import DEFAULT_DT
-from src.data_classes.lie_algebra import SE2
+from src.data_classes.lie_algebra import SE3
 from src.data_classes.state_history import StateHistory
 from src.modules.simulator import mass_spring_damper_model, robot_model
 from src.modules.state_space import StateSpaceLinear, StateSpaceNonlinear
@@ -67,13 +67,20 @@ def test_state_space_data_append():
     data = StateHistory()
 
     # Act
-    data.append_step(t=0.1, x=np.array([0.1, 0.2]), cov=np.eye(2), u=np.array([0.3]))
+    data.append_step(
+        t=0.1,
+        x=np.array([0.1, 0.2]),
+        cov=np.eye(2),
+        u=np.array([0.3]),
+        x_truth=np.array([0.1, 0.2]),
+    )
 
     # Assert
     np.testing.assert_array_almost_equal(data.time, [0.1])
     np.testing.assert_array_almost_equal(data.state, [np.array([0.1, 0.2])])
     np.testing.assert_array_almost_equal(data.covariance, [np.array([[1, 0], [0, 1]])])
     np.testing.assert_array_almost_equal(data.control, [np.array([0.3])])
+    np.testing.assert_array_almost_equal(data.state_true, [np.array([0.1, 0.2])])
 
 
 def test_state_space_step() -> None:
@@ -183,7 +190,7 @@ def test_state_space_nonlinear_robot_model(vel: float, theta: float) -> None:
     """Test the initialization of the Kalman filter."""
     # Arrange
     robot = robot_model()
-    pose = SE2(x=0.0, y=0.0, theta=theta)
+    pose = SE3(xyz=np.zeros((3, 1)), roll_pitch_yaw=np.array([[0.0], [0.0], [theta]]))
     u = np.array([[vel], [0.0]])
 
     # Act
@@ -191,20 +198,21 @@ def test_state_space_nonlinear_robot_model(vel: float, theta: float) -> None:
     state_space = StateSpaceLinear(A, B)
 
     # Assert
-    exp_A = np.array(
+    exp_A = 1.0 * np.eye(6)
+    exp_A[:2, -1] = np.array(
         [
-            [1.0, 0.0, -u[0, 0] * np.sin(pose.theta + u[1, 0])],
-            [0.0, 1.0, u[0, 0] * np.cos(pose.theta + u[1, 0])],
-            [0.0, 0.0, 1.0],
+            -u[0, 0] * np.sin(pose.yaw + u[1, 0]),
+            u[0, 0] * np.cos(pose.yaw + u[1, 0]),
         ]
     )
-    exp_B = np.array(
+    exp_B = 1.0 * np.zeros((6, 2))
+    exp_B[:2, 0] = np.array(
         [
-            [np.cos(pose.theta), 0.0],
-            [np.sin(pose.theta), 0.0],
-            [0.0, 1.0],
+            np.cos(pose.yaw),
+            np.sin(pose.yaw),
         ]
     )
+    exp_B[-1, -1] = 1.0
 
     np.testing.assert_array_almost_equal(
         state_space.A, exp_A, decimal=TEST_DECIMALS_ACCURACY
