@@ -157,21 +157,28 @@ def test_state_space_nonlinear() -> None:
     """Test the initialization of the Kalman filter."""
 
     def test_func(xu: np.ndarray) -> np.ndarray:
-        return xu[0, 0] ** 2 + xu[1, 0]
+        x = xu[:2, 0]
+        u = xu[2:, 0]
+        return x[0] ** 2 + x[1] + u
 
-    motion_model = [test_func]
-    measurement_model = [test_func]
+    motion_model = [test_func, test_func]
+    measurement_model = [test_func, test_func]
     state_space_nl = StateSpaceNonlinear(
         motion_model=motion_model, measurement_model=measurement_model
     )
 
     state = np.array([[3.0], [2.0]])
-    A, B = state_space_nl.linearize(model=motion_model, x=state, u=np.zeros((2, 1)))
+    A, B = state_space_nl.linearize(model=motion_model, x=state, u=np.ones((1, 1)))
     state_space = StateSpaceLinear(A, B)
 
-    exp_A = np.array([[2 * state[0, 0], 1]])
+    exp_A = np.array([[2 * state[0, 0], 1], [2 * state[0, 0], 1]])
+    exp_B = np.array([[1.0], [1.0]])
+
     np.testing.assert_array_almost_equal(
         state_space.A, exp_A, decimal=TEST_DECIMALS_ACCURACY
+    )
+    np.testing.assert_array_almost_equal(
+        state_space.B, exp_B, decimal=TEST_DECIMALS_ACCURACY
     )
 
 
@@ -195,11 +202,6 @@ def test_state_space_nonlinear_robot_model(vel: float, theta: float) -> None:
     x = pose.as_vector()
     u = np.array([[vel], [0.0]])
 
-    # Act
-    A, B = robot.linearize(model=robot.motion_model, x=x, u=u)
-    state_space = StateSpaceLinear(A, B)
-
-    # Assert
     exp_A = 1.0 * np.eye(6)
     exp_A[:2, -1] = np.array(
         [
@@ -207,6 +209,8 @@ def test_state_space_nonlinear_robot_model(vel: float, theta: float) -> None:
             u[0, 0] * np.cos(pose.yaw + u[1, 0]),
         ]
     )
+    exp_A[2, 4] = vel * np.cos(0.0)
+
     exp_B = 1.0 * np.zeros((6, 2))
     exp_B[:2, 0] = np.array(
         [
@@ -216,6 +220,11 @@ def test_state_space_nonlinear_robot_model(vel: float, theta: float) -> None:
     )
     exp_B[-1, -1] = 1.0
 
+    # Act
+    A, B = robot.linearize(model=robot.motion_model, x=x, u=u)
+    state_space = StateSpaceLinear(A, B)
+
+    # Assert
     np.testing.assert_array_almost_equal(
         state_space.A, exp_A, decimal=TEST_DECIMALS_ACCURACY
     )
