@@ -6,23 +6,36 @@ import pytest
 from src.data_classes.lie_algebra import SE3
 
 
-def test_se2() -> None:
+@pytest.mark.parametrize(
+    ("xyz", "rpy"),
+    [
+        (np.array([1.0, 2.0, 3.0]), np.array([1.0, 2.0, 3.0])),
+        (None, None),
+    ],
+)
+def test_se2(xyz, rpy) -> None:
     """Test that the SE2 class is correctly initialized."""
     # Arrange
-    x = 1.0
-    y = 2.0
-    z = 3.0
-    theta = 3.0
+    if xyz is None:
+        x, y, z = 0.0, 0.0, 0.0
+    else:
+        x, y, z = 1.0, 2.0, 3.0
+
+    if rpy is None:
+        roll, pitch, yaw = 0.0, 0.0, 0.0
+    else:
+        roll, pitch, yaw = 1.0, 2.0, 3.0
 
     # Act
-    se3 = SE3(
-        xyz=np.array([[x], [y], [z]]), roll_pitch_yaw=np.array([[0.0], [0.0], [theta]])
-    )
+    se3 = SE3(xyz=xyz, roll_pitch_yaw=rpy)
 
     # Assert
-    assert se3.x == x
-    assert se3.y == y
-    assert se3.yaw == theta
+    np.testing.assert_almost_equal(se3.x, x)
+    np.testing.assert_almost_equal(se3.y, y)
+    np.testing.assert_almost_equal(se3.z, z)
+    np.testing.assert_almost_equal(se3.roll, roll)
+    np.testing.assert_almost_equal(se3.pitch, pitch)
+    np.testing.assert_almost_equal(se3.yaw, yaw)
 
 
 @pytest.mark.parametrize(

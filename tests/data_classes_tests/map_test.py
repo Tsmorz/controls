@@ -1,5 +1,6 @@
 """Add a doc string to my files."""
 
+import numpy as np
 import pytest
 
 from src.data_classes.map import (
@@ -62,3 +63,17 @@ def test_map_random():
 
     # Assert
     assert len(map_object.features) == num_features
+
+
+def test_feature_as_vector():
+    """Test that a feature can be created and converted to a vector."""
+    # Arrange
+    feature = Feature(id=1, x=2.0, y=3.0)
+
+    # Act
+    feature_vector = feature.as_vector()
+
+    # Assert
+    np.testing.assert_array_almost_equal(
+        feature_vector, np.array([[2.0], [3.0], [0.0]])
+    )

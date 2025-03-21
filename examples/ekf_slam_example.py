@@ -247,19 +247,11 @@ class SlamSimulator:
         plt.arrow(
             x=pose.x,
             y=pose.y,
-            dx=0.1 * np.cos(pose.yaw),
-            dy=0.1 * np.sin(pose.yaw),
+            dx=0.2 * np.cos(pose.yaw),
+            dy=0.2 * np.sin(pose.yaw),
             width=0.01,
             color=color,
         )
-
-    def add_pose_to_plot(self, pose):
-        """Add a drawing to the plot of the estimate and true poses."""
-        plt.plot([self.pose.x, pose.x], [self.pose.y, pose.y], "k-", alpha=0.8)
-        self.plot_pose(pose=pose, color="blue")
-        self.plot_pose(pose=self.pose, color="red")
-        plt.draw()
-        plt.pause(0.05)
 
 
 def pipeline() -> None:
@@ -306,7 +298,8 @@ def pipeline() -> None:
                 if meas.type == SensorType.DISTANCE_AND_BEARING:
                     add_measurement_to_plot(meas, state=ekf.x)
 
-        logger.info(f"state: {ekf.x.T}")
+        x_str = np.array2string(ekf.x.T, precision=2, floatmode="fixed")
+        logger.info(f"state: {x_str}")
         robot_pose = state_to_se3(state=ekf.x)
         sim.append_estimate(estimated_pose=robot_pose, plot_pose=True)
 
