@@ -60,6 +60,8 @@ lint.ignore = [
     "E731",  # Do not assign a `lambda` expression, use a `def`
     "D107",  # Missing docstring in `__init__`
     "PLR2004",  # Magic value used in comparison
+    "S607",  # Starting a process with a partial executable path
+    "S605",  # Starting a process with a shell
 ]
 
 # Automatically fix issues where possible
