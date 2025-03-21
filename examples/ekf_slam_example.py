@@ -17,12 +17,44 @@ def state_to_se3(state: np.ndarray) -> SE3:
     return SE3(xyz=state[0:3], roll_pitch_yaw=state[3:6])
 
 
-def get_angular_velocities_for_box(steps: int, radius_steps: int) -> list[float]:
-    """Create the angular velocity control inputs for a box."""
-    side_length = int(steps / 4)
-    one_side = side_length * [0] + radius_steps * [np.pi / 2 / radius_steps]
-    turning_rates = one_side + one_side + one_side + one_side
-    return turning_rates
+def motion_eqns(state_control: np.ndarray) -> np.ndarray:
+    """Define the equations of motion.
+
+    :param state_control: the state and control vectors
+    :return: the state vector after applying the motion equations
+    """
+    vel, omega = state_control[-2:]
+    pose = state_to_se3(state_control[:6, 0])
+
+    state_vec = np.zeros_like(state_control)
+    state_vec[0, 0] = vel * np.cos(pose.yaw) * np.cos(pose.pitch) + pose.x
+    state_vec[1, 0] = vel * np.sin(pose.yaw) * np.cos(pose.pitch) + pose.y
+    state_vec[2, 0] = vel * np.sin(pose.pitch) + pose.z
+    state_vec[3, 0] = pose.roll
+    state_vec[4, 0] = pose.pitch
+    state_vec[5, 0] = pose.yaw + omega
+    return state_control
+
+
+def measurement_eqns(state_control: np.ndarray, feature: Feature) -> np.ndarray:
+    """Define the equations of measurement.
+
+    :param state_control: the state and control vectors
+    :param feature: the feature to be measured
+    :return: the measurement vector at the current state
+    """
+    pose = state_to_se3(state_control[:6, 0])
+    delta_x = feature.x - pose.x
+    delta_y = feature.y - pose.y
+    delta_z = feature.z - pose.z
+
+    distance = np.sqrt(delta_x**2 + delta_y**2 + delta_z**2)
+    angle = np.arctan2(delta_y, delta_x) - pose.yaw
+
+    measurement = np.zeros((2, 1))
+    measurement[0, 0] = distance
+    measurement[1, 0] = angle
+    return measurement
 
 
 def pos_x_func(state_control: np.ndarray) -> float | np.ndarray:
@@ -116,6 +148,14 @@ def add_measurement_to_plot(measurement, state: np.ndarray) -> None:
     x1, x2 = pose.x, pose.x + m[0, 0] * np.cos(pose.yaw + m[1, 0])
     y1, y2 = pose.y, pose.y + m[0, 0] * np.sin(pose.yaw + m[1, 0])
     plt.plot([x1, x2], [y1, y2], "k-", alpha=0.2)
+
+
+def get_angular_velocities_for_box(steps: int, radius_steps: int) -> list[float]:
+    """Create the angular velocity control inputs for a box."""
+    side_length = int(steps / 4)
+    one_side = side_length * [0] + radius_steps * [np.pi / 2 / radius_steps]
+    turning_rates = one_side + one_side + one_side + one_side
+    return turning_rates
 
 
 class SlamSimulator:

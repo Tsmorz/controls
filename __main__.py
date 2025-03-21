@@ -1,13 +1,10 @@
 """Basic docstring for my module."""
 
 import argparse
-import os
+import subprocess
 from enum import Enum, auto
 
 from loguru import logger
-
-from config.definitions import DEFAULT_DISCRETIZATION
-from src.modules.simulator import mass_spring_damper_model
 
 
 class Pipeline(Enum):
@@ -18,14 +15,6 @@ class Pipeline(Enum):
     EKF_SLAM = auto()
     CONTROLLER = auto()
     STATE_SPACE = auto()
-
-
-def run_state_space_pipeline() -> None:
-    """Run the main program with this function."""
-    dt = DEFAULT_DISCRETIZATION
-    ss_model = mass_spring_damper_model(discretization_dt=dt)
-    ss_model.step_response(delta_t=dt, plot_response=True)
-    ss_model.impulse_response(delta_t=dt, plot_response=True)
 
 
 if __name__ == "__main__":  # pragma: no cover
@@ -44,11 +33,12 @@ if __name__ == "__main__":  # pragma: no cover
     pipeline_id = args.pipeline
 
     if pipeline_id == Pipeline.KF.name:
-        os.system("python examples/kf_example.py")
+        subprocess.run(["python", "examples/kf_example.py"], check=True)
     elif pipeline_id == Pipeline.EKF.name:
-        os.system("python examples/ekf_slam_example.py")
+        subprocess.run(["python", "examples/ekf_slam_example.py"], check=False)
     elif pipeline_id == Pipeline.STATE_SPACE.name:
-        run_state_space_pipeline()
+        subprocess.run(["python", "examples/state_space_example.py"], check=False)
+
     else:
         msg = f"Invalid pipeline number: {pipeline_id}"
         logger.error(msg)

@@ -62,6 +62,7 @@ lint.ignore = [
     "PLR2004",  # Magic value used in comparison
     "S607",  # Starting a process with a partial executable path
     "S605",  # Starting a process with a shell
+    "S603",  # `subprocess` call: check for execution of untrusted input
 ]
 
 # Automatically fix issues where possible
