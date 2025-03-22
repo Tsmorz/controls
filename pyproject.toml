@@ -17,6 +17,7 @@ pre-commit = "^4.1.0"
 matplotlib = "^3.10.1"
 sympy = "^1.13.3"
 autograd = "^1.7.0"
+jax = "^0.5.3"
 
 
 [build-system]
