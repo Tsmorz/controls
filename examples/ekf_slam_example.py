@@ -58,17 +58,6 @@ def measurement_eqns(state_control: np.ndarray, feature: Feature) -> np.ndarray:
     return measurement
 
 
-def measure_angle_func(
-    state_control: np.ndarray, feature: Feature
-) -> float | np.ndarray:
-    """Find the y position given the state and control vectors."""
-    pos_x, pos_y, pos_z, roll, pitch, yaw, vel, omega = state_control
-    delta_x = feature.x - pos_x
-    delta_y = feature.y - pos_y
-    angle = np.arctan2(delta_y, delta_x) - yaw
-    return angle
-
-
 def robot_model() -> StateSpaceNonlinear:
     """Create a StateSpaceNonlinear model of a wheeled robot."""
     return StateSpaceNonlinear(
