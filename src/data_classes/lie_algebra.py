@@ -25,12 +25,12 @@ class SE3:
             roll_pitch_yaw = np.array([[0.0], [0.0], [0.0]])
         if roll_pitch_yaw.shape == (3,):
             roll_pitch_yaw = np.reshape(roll_pitch_yaw, (3, 1))
-        self.x: float = float(xyz[0, 0])
-        self.y: float = float(xyz[1, 0])
-        self.z: float = float(xyz[2, 0])
-        self.roll: float = float(roll_pitch_yaw[0, 0])
-        self.pitch: float = float(roll_pitch_yaw[1, 0])
-        self.yaw: float = float(roll_pitch_yaw[2, 0])
+        self.x: float | np.ndarray = xyz[0, 0]
+        self.y: float | np.ndarray = xyz[1, 0]
+        self.z: float | np.ndarray = xyz[2, 0]
+        self.roll: float | np.ndarray = roll_pitch_yaw[0, 0]
+        self.pitch: float | np.ndarray = roll_pitch_yaw[1, 0]
+        self.yaw: float | np.ndarray = roll_pitch_yaw[2, 0]
 
     def __str__(self):  # pragma: no cover
         """Return a string representation of the pose."""
