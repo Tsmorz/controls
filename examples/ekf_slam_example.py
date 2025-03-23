@@ -4,11 +4,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 from loguru import logger
 
+from config.definitions import VECTOR_LENGTH
 from src.data_classes.lie_algebra import SE3
 from src.data_classes.map import Feature, make_random_map_planar
 from src.data_classes.sensors import Bearing, Distance, DistanceAndBearing, SensorType
 from src.data_classes.slam import PoseMap
-from src.modules.extended_kalman import ExtendedKalmanFilter
+from src.modules.kalman_extended import ExtendedKalmanFilter
 from src.modules.state_space import StateSpaceNonlinear
 
 
@@ -26,14 +27,14 @@ def motion_eqns(state_control: np.ndarray) -> np.ndarray:
     vel, omega = state_control[-2:]
     pose = state_to_se3(state_control[:6, 0])
 
-    state_vec = np.zeros_like(state_control)
-    state_vec[0, 0] = vel * np.cos(pose.yaw) * np.cos(pose.pitch) + pose.x
-    state_vec[1, 0] = vel * np.sin(pose.yaw) * np.cos(pose.pitch) + pose.y
-    state_vec[2, 0] = vel * np.sin(pose.pitch) + pose.z
+    state_vec = np.zeros((6, 1))
+    state_vec[0, 0] = vel[0] * np.cos(pose.yaw) * np.cos(pose.pitch) + pose.x
+    state_vec[1, 0] = vel[0] * np.sin(pose.yaw) * np.cos(pose.pitch) + pose.y
+    state_vec[2, 0] = vel[0] * np.sin(pose.pitch) + pose.z
     state_vec[3, 0] = pose.roll
     state_vec[4, 0] = pose.pitch
-    state_vec[5, 0] = pose.yaw + omega
-    return state_control
+    state_vec[5, 0] = pose.yaw + omega[0]
+    return state_vec
 
 
 def measurement_eqns(state_control: np.ndarray, feature: Feature) -> np.ndarray:
@@ -57,58 +58,6 @@ def measurement_eqns(state_control: np.ndarray, feature: Feature) -> np.ndarray:
     return measurement
 
 
-def pos_x_func(state_control: np.ndarray) -> float | np.ndarray:
-    """Find the x position given the state and control vectors."""
-    vel, omega = state_control[-2:]
-    pose = state_to_se3(state_control[:6, 0])
-    return vel * np.cos(pose.yaw) * np.cos(pose.pitch) + pose.x
-
-
-def pos_y_func(state_control: np.ndarray) -> float | np.ndarray:
-    """Find the y position given the state and control vectors."""
-    vel, omega = state_control[-2:]
-    pose = state_to_se3(state_control[:6, 0])
-    return vel * np.sin(pose.yaw) * np.cos(pose.pitch) + pose.y
-
-
-def pos_z_func(state_control: np.ndarray) -> float | np.ndarray:
-    """Find the y position given the state and control vectors."""
-    vel, omega = state_control[-2:]
-    pose = state_to_se3(state_control[:6, 0])
-    return vel * np.sin(pose.pitch) + pose.z
-
-
-def roll_func(state_control: np.ndarray) -> float | np.ndarray:
-    """Find the heading given the state and control vectors."""
-    pose = state_to_se3(state_control[:6, 0])
-    return pose.roll
-
-
-def pitch_func(state_control: np.ndarray) -> float | np.ndarray:
-    """Find the heading given the state and control vectors."""
-    pose = state_to_se3(state_control[:6, 0])
-    return pose.pitch
-
-
-def yaw_func(state_control: np.ndarray) -> float | np.ndarray:
-    """Find the heading given the state and control vectors."""
-    vel, omega = state_control[-2:]
-    pose = state_to_se3(state_control[:6, 0])
-    return np.array(pose.yaw + omega)
-
-
-def measure_range_func(
-    state_control: np.ndarray, feature: Feature
-) -> float | np.ndarray:
-    """Find the x position given the state and control vectors."""
-    pose = state_to_se3(state_control[:6, 0])
-    delta_x = feature.x - pose.x
-    delta_y = feature.y - pose.y
-    delta_z = feature.z - pose.z
-    distance = np.sqrt(delta_x**2 + delta_y**2 + delta_z)
-    return distance
-
-
 def measure_angle_func(
     state_control: np.ndarray, feature: Feature
 ) -> float | np.ndarray:
@@ -122,22 +71,8 @@ def measure_angle_func(
 
 def robot_model() -> StateSpaceNonlinear:
     """Create a StateSpaceNonlinear model of a wheeled robot."""
-    motion_model = [
-        pos_x_func,
-        pos_y_func,
-        pos_z_func,
-        roll_func,
-        pitch_func,
-        yaw_func,
-    ]
-
-    measurement_model = [
-        measure_range_func,
-        measure_angle_func,
-    ]
-
     return StateSpaceNonlinear(
-        motion_model=motion_model, measurement_model=measurement_model
+        motion_model=motion_eqns, measurement_model=measurement_eqns
     )
 
 
@@ -214,11 +149,11 @@ class SlamSimulator:
         :return: Range distance measurement
         """
         if sensor_type == SensorType.DISTANCE:
-            return Distance(ground_truth=self.pose, features=[feature])
+            return Distance(state=self.pose, features=[feature])
         elif sensor_type == SensorType.BEARING:
-            return Bearing(ground_truth=self.pose, features=[feature])
+            return Bearing(state=self.pose, features=[feature])
         elif sensor_type == SensorType.DISTANCE_AND_BEARING:
-            return DistanceAndBearing(ground_truth=self.pose, features=[feature])
+            return DistanceAndBearing(state=self.pose, features=[feature])
         else:
             msg = f"Unsupported sensor type: {sensor_type}"
             logger.error(msg)
@@ -247,8 +182,8 @@ class SlamSimulator:
         plt.arrow(
             x=pose.x,
             y=pose.y,
-            dx=0.2 * np.cos(pose.yaw),
-            dy=0.2 * np.sin(pose.yaw),
+            dx=VECTOR_LENGTH * np.cos(pose.yaw),
+            dy=VECTOR_LENGTH * np.sin(pose.yaw),
             width=0.01,
             color=color,
         )

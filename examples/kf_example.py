@@ -83,8 +83,10 @@ def pipeline() -> None:
     # initialize the kalman filter
     kf = KalmanFilter(
         state_space=ss,
+        process_noise=0.1 * np.eye(len(ss.A)),
+        measurement_noise=1.0 * np.eye(len(ss.C)),
         initial_x=np.array([[5.0], [5.0]]),
-        initial_covariance=5 * np.eye(2),
+        initial_covariance=10 * np.eye(len(ss.A)),
     )
 
     sim = KalmanSimulator(

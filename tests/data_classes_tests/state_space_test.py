@@ -159,16 +159,16 @@ def test_state_space_nonlinear() -> None:
     def test_func(xu: np.ndarray) -> np.ndarray:
         x = xu[:2, 0]
         u = xu[2:, 0]
-        return x[0] ** 2 + x[1] + u
+        return np.array([[x[0] ** 2 + x[1] + u], [x[0] ** 2 + x[1] + u]])
 
-    motion_model = [test_func, test_func]
-    measurement_model = [test_func, test_func]
     state_space_nl = StateSpaceNonlinear(
-        motion_model=motion_model, measurement_model=measurement_model
+        motion_model=test_func, measurement_model=test_func
     )
 
     state = np.array([[3.0], [2.0]])
-    A, B = state_space_nl.linearize(model=motion_model, x=state, u=np.ones((1, 1)))
+    A, B = state_space_nl.linearize(
+        model=state_space_nl.motion_model, x=state, u=np.ones((1, 1))
+    )
     state_space = StateSpaceLinear(A, B)
 
     exp_A = np.array([[2 * state[0, 0], 1], [2 * state[0, 0], 1]])

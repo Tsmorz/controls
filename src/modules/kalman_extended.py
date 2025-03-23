@@ -32,15 +32,11 @@ class ExtendedKalmanFilter:
         self.state_space_nl = state_space_nonlinear
 
         if process_noise is None:
-            process_noise = PROCESS_NOISE * np.eye(
-                len(state_space_nonlinear.motion_model)
-            )
+            process_noise = PROCESS_NOISE * np.eye(len(initial_x))
         self.Q: np.ndarray = process_noise
 
         if measurement_noise is None:
-            measurement_noise = MEASUREMENT_NOISE * np.eye(
-                len(state_space_nonlinear.measurement_model)
-            )
+            measurement_noise = MEASUREMENT_NOISE * np.eye(2)
         self.R: np.ndarray = measurement_noise
 
         self.x: np.ndarray = initial_x
@@ -81,7 +77,9 @@ class ExtendedKalmanFilter:
         )
         state_space = StateSpaceLinear(A, B, C, D)
 
-        y = z - self.state_space_nl.predict_z(self.x, u, measurement_args)
+        y = z - self.state_space_nl.predict_z(
+            x=self.x, u=u, measurement_args=measurement_args
+        )
         S = state_space.C @ self.cov @ state_space.C.T + self.R
         K = self.cov @ state_space.C.T @ np.linalg.inv(S)
         self.x = self.x + K @ y

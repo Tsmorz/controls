@@ -48,7 +48,7 @@ def plot_history(
     :return: None
     """
 
-    def _add_bounds(state, color) -> None:  # pragma: no cover
+    def _add_bounds(state, sigma, color) -> None:  # pragma: no cover
         confidence_99 = 2.576
         lower = data - confidence_99 * sigma
         upper = data + confidence_99 * sigma
@@ -69,17 +69,20 @@ def plot_history(
         for num_state in range(num_states):
             data = np.array([arr[num_state] for arr in history.state]).flatten()
 
-            sigma = np.array([arr[num_state, num_state] for arr in history.covariance])
             if ii == 1:
                 data /= np.amax(np.abs(data))
 
             p = ax.plot(
                 history.time, data, "--", label=f"$x_{num_state}$", alpha=PLOT_ALPHA
             )
-            _add_bounds(
-                state=num_state,
-                color=p[0].get_color(),
-            )
+            if len(history.covariance) > 0:
+                _add_bounds(
+                    state=num_state,
+                    sigma=np.array(
+                        [arr[num_state, num_state] for arr in history.covariance]
+                    ),
+                    color=p[0].get_color(),
+                )
             ax.set_ylabel("State" if ii == 0 else "Normalized State")
 
             # plot the ground truth if it exists

@@ -143,8 +143,8 @@ class StateSpaceNonlinear:
 
     def __init__(
         self,
-        motion_model: list[Callable],
-        measurement_model: list[Callable],
+        motion_model: Callable,
+        measurement_model: Callable,
     ):
         """Initialize a nonlinear state space model."""
         self.motion_model = motion_model
@@ -152,7 +152,7 @@ class StateSpaceNonlinear:
 
     def linearize(
         self,
-        model: list[Callable],
+        model: Callable,
         x: np.ndarray,
         u: np.ndarray,
         other_args: Optional[Any] = None,
@@ -167,13 +167,19 @@ class StateSpaceNonlinear:
         """
         xu = np.vstack((x, u))
 
+        if other_args is None:
+            result = model(xu)
+        else:
+            result = model(xu, other_args)
+        dim = len(result)
+
         # linearize the motion model around the current state
-        jacobian = np.zeros((len(model), len(xu)))
-        for fun_idx, fun in enumerate(model):
-            for xu_idx in range(len(xu)):
-                jacobian[fun_idx, xu_idx] = self._derivative(
-                    fun=fun, x=xu, x_idx=xu_idx, other_args=other_args
-                )
+        jacobian = np.zeros((dim, len(xu)))
+        for xu_idx in range(len(xu)):
+            result = self._derivative(
+                fun=model, x=xu, x_idx=xu_idx, other_args=other_args
+            )
+            jacobian[:, xu_idx] = np.reshape(result, (len(result),))
         jacobian_x = jacobian[:, : len(x)]
         jacobian_u = jacobian[:, len(x) :]
 
@@ -195,10 +201,7 @@ class StateSpaceNonlinear:
             value = (fun(x_copy2, other_args) - fun(x_copy1, other_args)) / (
                 2 * EPSILON
             )
-
-        if isinstance(value, float):
-            return value
-        return value[0]
+        return value
 
     def step(self, x: np.ndarray, u: np.ndarray) -> np.ndarray:
         """Step the state-space model by one step.
@@ -207,11 +210,8 @@ class StateSpaceNonlinear:
         :param u: Control input
         :return: Next state
         """
-        x_new = np.zeros_like(x)
         xu = np.vstack((x, u))
-        for ii, func in enumerate(self.motion_model):
-            x_new[ii, 0] = func(xu)
-        return x_new
+        return self.motion_model(xu)
 
     def predict_z(
         self, x: np.ndarray, u: np.ndarray, measurement_args: Optional[Any] = None
@@ -223,12 +223,9 @@ class StateSpaceNonlinear:
         :param measurement_args: Additional arguments (e.g., map of features)
         :return: Next state
         """
-        z_pred = np.zeros((len(self.measurement_model), 1))
         xu = np.vstack((x, u))
         if measurement_args is None:
-            for ii, func in enumerate(self.measurement_model):
-                z_pred[ii, 0] = func(xu)
+            z_pred = self.measurement_model(xu)
         else:
-            for ii, func in enumerate(self.measurement_model):
-                z_pred[ii, 0] = func(xu, measurement_args)
+            z_pred = self.measurement_model(xu, measurement_args)
         return z_pred
