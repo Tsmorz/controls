@@ -3,19 +3,18 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from loguru import logger
+from matplotlib.pyplot import Axes, Figure
 
 from config.definitions import VECTOR_LENGTH
-from src.data_classes.lie_algebra import SE3
+from src.data_classes.lie_algebra import SE3, state_to_se3
 from src.data_classes.map import Feature, make_random_map_planar
-from src.data_classes.sensors import Bearing, Distance, DistanceAndBearing, SensorType
-from src.data_classes.slam import PoseMap
+from src.data_classes.sensors import (
+    DistanceAndBearing,
+    Dynamics,
+)
+from src.data_classes.slam import Map, PoseMap
 from src.modules.kalman_extended import ExtendedKalmanFilter
 from src.modules.state_space import StateSpaceNonlinear
-
-
-def state_to_se3(state: np.ndarray) -> SE3:
-    """Map the state vector to SE2."""
-    return SE3(xyz=state[0:3], roll_pitch_yaw=state[3:6])
 
 
 def motion_eqns(state_control: np.ndarray) -> np.ndarray:
@@ -60,18 +59,29 @@ def measurement_eqns(state_control: np.ndarray, feature: Feature) -> np.ndarray:
 
 def robot_model() -> StateSpaceNonlinear:
     """Create a StateSpaceNonlinear model of a wheeled robot."""
-    return StateSpaceNonlinear(
-        motion_model=motion_eqns, measurement_model=measurement_eqns
-    )
+    return StateSpaceNonlinear(motion_model=Dynamics)
 
 
-def add_measurement_to_plot(measurement, state: np.ndarray) -> None:
+def add_measurement_to_plot(
+    fig: tuple[Figure, Axes],
+    distances: np.ndarray,
+    bearings: np.ndarray,
+    state: np.ndarray,
+) -> None:
     """Plot the simulation results."""
-    m = measurement.as_vector()
+    rays = []
     pose = state_to_se3(state=state)
-    x1, x2 = pose.x, pose.x + m[0, 0] * np.cos(pose.yaw + m[1, 0])
-    y1, y2 = pose.y, pose.y + m[0, 0] * np.sin(pose.yaw + m[1, 0])
-    plt.plot([x1, x2], [y1, y2], "k-", alpha=0.2)
+    for r, b in zip(distances, bearings):
+        x1, x2 = pose.x, pose.x + r * np.cos(pose.yaw + b)
+        y1, y2 = pose.y, pose.y + r * np.sin(pose.yaw + b)
+        (m,) = plt.plot([x1, x2], [y1, y2], "k-", alpha=0.2)
+        rays.append(m)
+    plt.axis("equal")
+    plt.pause(0.1)
+    for ray in rays:
+        ray.remove()
+    fig[0].canvas.draw()
+    fig[0].canvas.flush_events()
 
 
 def get_angular_velocities_for_box(steps: int, radius_steps: int) -> list[float]:
@@ -89,32 +99,36 @@ class SlamSimulator:
         self,
         state_space_nl: StateSpaceNonlinear,
         process_noise: np.ndarray,
-        measurement_noise: np.ndarray,
         initial_pose: SE3,
+        sim_map: Map,
         steps: int = 100,
     ) -> None:
         """Initialize the Kalman Filter.
 
         :param state_space_nl: linear state space model
         :param process_noise: Process noise covariance
-        :param measurement_noise: Measurement noise covariance
         :param initial_pose: Initial state estimate
+        :param steps: Number of simulation steps
+        :param sim_map: Optional map for visualization
         :return: None
         """
         self.state_space_nl = state_space_nl
         self.Q: np.ndarray = process_noise
-        self.R: np.ndarray = measurement_noise
         self.pose: SE3 = initial_pose
         self.history: list[tuple[SE3, SE3]] = []
         self.controls = get_angular_velocities_for_box(steps=steps, radius_steps=6)
+        self.map: Map = sim_map
 
-        plt.figure(figsize=(8, 8)).add_subplot(111)
+        fig = plt.figure(figsize=(8, 8))
+        ax = fig.add_subplot(111)
         plt.axis("equal")
         plt.grid(True)
         plt.xlabel("x position")
         plt.ylabel("y position")
         plt.title("Robot Localization")
-        self.figure: plt.Figure
+        for feature in self.map.features:
+            ax.plot(feature.x, feature.y, "k*")
+        self.sim_plot = (fig, ax)
 
     def step(self, u: np.ndarray) -> SE3:
         """Predict the next state and error covariance.
@@ -125,50 +139,27 @@ class SlamSimulator:
         scale = np.reshape(scale, (self.Q.shape[0], 1))
         noise = np.random.normal(loc=0.0, scale=scale, size=(self.Q.shape[0], 1))
         x = self.state_space_nl.step(x=self.pose.as_vector(), u=u) + noise
+
+        # set z pos, roll, and pitch to zero
+        x[2, 0], x[3, 0], x[4, 0] = 0.0, 0.0, 0.0
+
         self.pose = SE3(xyz=x[0:3], roll_pitch_yaw=x[3:6])
         return self.pose
 
-    def get_measurement(
-        self, feature: Feature, sensor_type: SensorType
-    ) -> DistanceAndBearing | Distance | Bearing:
-        """Calculate the range distance measurement between a pose and a feature.
-
-        :param feature: Feature in the map
-        :param sensor_type: Sensor used for measurement
-        :return: Range distance measurement
-        """
-        if sensor_type == SensorType.DISTANCE:
-            return Distance(state=self.pose, features=[feature])
-        elif sensor_type == SensorType.BEARING:
-            return Bearing(state=self.pose, features=[feature])
-        elif sensor_type == SensorType.DISTANCE_AND_BEARING:
-            return DistanceAndBearing(state=self.pose, features=[feature])
-        else:
-            msg = f"Unsupported sensor type: {sensor_type}"
-            logger.error(msg)
-            raise ValueError(msg)
-
-    def append_estimate(self, estimated_pose: SE3, plot_pose: bool) -> None:
+    def append_estimate(self, estimated_pose: SE3) -> None:
         """Update the state estimate based on an estimated pose."""
         self.history.append((estimated_pose, self.pose))
+        self.plot_pose(pose=estimated_pose, color="blue")
+        self.plot_pose(pose=self.pose, color="red")
+        plt.axis("equal")
+        plt.draw()
+        plt.pause(0.1)
 
-        if plot_pose:
-            plt.plot(
-                [float(self.pose.x), float(estimated_pose.x)],
-                [float(self.pose.y), float(estimated_pose.y)],
-                "k-",
-                alpha=0.8,
-            )
-            self.plot_pose(pose=estimated_pose, color="blue")
-            self.plot_pose(pose=self.pose, color="red")
-            plt.draw()
-            plt.pause(0.05)
-
-    @staticmethod
-    def plot_pose(pose, color):
+    def plot_pose(self, pose, color):
         """Add a drawing to the plot of a pose."""
-        plt.plot([pose.x, pose.x], [pose.y, pose.y], "k-", alpha=0.8)
-        plt.arrow(
+        fig, ax = self.sim_plot
+        ax.plot([pose.x, pose.x], [pose.y, pose.y], "k-", alpha=0.8)
+        ax.arrow(
             x=pose.x,
             y=pose.y,
             dx=VECTOR_LENGTH * np.cos(pose.yaw),
@@ -176,15 +167,17 @@ class SlamSimulator:
             width=0.01,
             color=color,
         )
+        fig.show()
 
 
 def pipeline() -> None:
     """Run the EKF for SLAM."""
     logger.info("Running Extended Kalman Filter pipeline.")
 
-    robot = robot_model()
+    robot = StateSpaceNonlinear(motion_model=Dynamics)
     robot_pose = SE3(xyz=np.zeros((3,)), roll_pitch_yaw=np.zeros((3,)))
     pose_map = PoseMap(pose=robot_pose)
+
     ekf = ExtendedKalmanFilter(
         state_space_nonlinear=robot,
         initial_x=pose_map.pose.as_vector(),
@@ -194,12 +187,10 @@ def pipeline() -> None:
     sim = SlamSimulator(
         state_space_nl=robot,
         process_noise=ekf.Q,
-        measurement_noise=ekf.R,
         initial_pose=pose_map.pose,
-        steps=100,
+        sim_map=make_random_map_planar(num_features=8, dim=(25, 25)),
+        steps=200,
     )
-
-    true_map = make_random_map_planar(num_features=3, dim=(15, 15))
 
     linear_vel = 0.5
     for time, angular_vel in enumerate(sim.controls):
@@ -208,24 +199,27 @@ def pipeline() -> None:
         ekf.predict(u=control_input)
         pose_map.from_vector(ekf_state=ekf.x)
 
-        if (time / 20) % 1 == 0 and time != 0:
-            for ii, feat in enumerate(true_map.features):
-                feature_new = Feature(x=time, y=time, id=ii * time)
-                meas = sim.get_measurement(
-                    feature=feat,
-                    sensor_type=SensorType.DISTANCE_AND_BEARING,
-                )
-                logger.info(f"Measurement={meas}")
-                pose_map.map.append_feature(feature=feature_new)
+        if (time / 15) % 1 == 0 and time != 0:
+            meas = DistanceAndBearing(
+                state=sim.pose.as_vector(), features=sim.map.features
+            )
 
-                ekf.update(z=meas.as_vector(), u=control_input, measurement_args=feat)
-                if meas.type == SensorType.DISTANCE_AND_BEARING:
-                    add_measurement_to_plot(meas, state=ekf.x)
+            logger.info(f"Measurement={meas}")
+            ekf.update(z=meas, u=control_input, measurement_args=sim.map.features)
+
+            add_measurement_to_plot(
+                fig=sim.sim_plot,
+                distances=meas.distance,
+                bearings=meas.bearing,
+                state=ekf.x,
+            )
+            for feat in sim.map.features:
+                pose_map.map.append_feature(feature=feat)
 
         x_str = np.array2string(ekf.x.T, precision=2, floatmode="fixed")
         logger.info(f"state: {x_str}")
         robot_pose = state_to_se3(state=ekf.x)
-        sim.append_estimate(estimated_pose=robot_pose, plot_pose=True)
+        sim.append_estimate(estimated_pose=robot_pose)
 
     plt.show()
     plt.close()

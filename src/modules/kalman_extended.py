@@ -5,6 +5,7 @@ from typing import Any, Optional
 import numpy as np
 
 from config.definitions import DEFAULT_CONTROL, MEASUREMENT_NOISE, PROCESS_NOISE
+from src.data_classes.sensors import SensorBase
 from src.modules.math_utils import symmetrize_matrix
 from src.modules.state_space import StateSpaceLinear, StateSpaceNonlinear
 
@@ -18,7 +19,6 @@ class ExtendedKalmanFilter:
         initial_x: np.ndarray,
         initial_covariance: np.ndarray,
         process_noise: Optional[np.ndarray] = None,
-        measurement_noise: Optional[np.ndarray] = None,
     ) -> None:
         """Initialize the Extended Kalman Filter.
 
@@ -26,7 +26,6 @@ class ExtendedKalmanFilter:
         :param initial_x: Initial state estimate
         :param initial_covariance: Initial error covariance
         :param process_noise: Process noise covariance
-        :param measurement_noise: Measurement noise covariance
         :return: None
         """
         self.state_space_nl = state_space_nonlinear
@@ -34,10 +33,6 @@ class ExtendedKalmanFilter:
         if process_noise is None:
             process_noise = PROCESS_NOISE * np.eye(len(initial_x))
         self.Q: np.ndarray = process_noise
-
-        if measurement_noise is None:
-            measurement_noise = MEASUREMENT_NOISE * np.eye(2)
-        self.R: np.ndarray = measurement_noise
 
         self.x: np.ndarray = initial_x
         self.cov: np.ndarray = initial_covariance
@@ -57,7 +52,10 @@ class ExtendedKalmanFilter:
         self.cov = symmetrize_matrix(self.cov)
 
     def update(
-        self, z: np.ndarray, u: np.ndarray, measurement_args: Optional[Any] = None
+        self,
+        z: SensorBase,
+        u: np.ndarray,
+        measurement_args: Optional[list[Any]] = None,
     ) -> None:
         """Update the state estimate with measurement z.
 
@@ -67,20 +65,26 @@ class ExtendedKalmanFilter:
         :return: Updated state estimate and state covariance
         """
         A, B = self.state_space_nl.linearize(
-            model=self.state_space_nl.motion_model, x=self.x, u=u
+            model=self.state_space_nl.motion_model,
+            x=self.x,
+            u=u,
         )
         C, D = self.state_space_nl.linearize(
-            model=self.state_space_nl.measurement_model,
+            model=type(z),
             x=self.x,
             u=u,
             other_args=measurement_args,
         )
         state_space = StateSpaceLinear(A, B, C, D)
 
-        y = z - self.state_space_nl.predict_z(
-            x=self.x, u=u, measurement_args=measurement_args
+        predict_z = self.state_space_nl.predict_z(
+            state=self.x,
+            measurement=z,
+            measurement_args=measurement_args,
         )
-        S = state_space.C @ self.cov @ state_space.C.T + self.R
+        y = z.as_vector() - predict_z.as_vector()
+        R = MEASUREMENT_NOISE * np.eye(len(z.as_vector()))
+        S = state_space.C @ self.cov @ state_space.C.T + R
         K = self.cov @ state_space.C.T @ np.linalg.inv(S)
         self.x = self.x + K @ y
         cov = (np.eye(self.cov.shape[0]) - K @ state_space.C) @ self.cov

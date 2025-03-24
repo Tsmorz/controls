@@ -8,6 +8,10 @@ from loguru import logger
 from scipy.signal import cont2discrete
 
 from config.definitions import EPSILON
+from src.data_classes.sensors import (
+    Dynamics,
+    SensorBase,
+)
 from src.data_classes.state_history import StateHistory, plot_history
 
 
@@ -141,21 +145,16 @@ class StateSpaceLinear:
 class StateSpaceNonlinear:
     """A class for representing a nonlinear state-space model."""
 
-    def __init__(
-        self,
-        motion_model: Callable,
-        measurement_model: Callable,
-    ):
+    def __init__(self, motion_model: type[Dynamics]):
         """Initialize a nonlinear state space model."""
         self.motion_model = motion_model
-        self.measurement_model = measurement_model
 
     def linearize(
         self,
         model: Callable,
         x: np.ndarray,
         u: np.ndarray,
-        other_args: Optional[Any] = None,
+        other_args: Optional[list[Any]] = None,
     ) -> tuple[np.ndarray, np.ndarray]:
         """Linearize a list of callables.
 
@@ -168,18 +167,18 @@ class StateSpaceNonlinear:
         xu = np.vstack((x, u))
 
         if other_args is None:
-            result = model(xu)
+            output = model(xu)
         else:
-            result = model(xu, other_args)
-        dim = len(result)
+            output = model(xu, other_args)
+        output_dim = output.as_vector().shape[0]
 
         # linearize the motion model around the current state
-        jacobian = np.zeros((dim, len(xu)))
+        jacobian = np.zeros((output_dim, len(xu)))
         for xu_idx in range(len(xu)):
             result = self._derivative(
                 fun=model, x=xu, x_idx=xu_idx, other_args=other_args
             )
-            jacobian[:, xu_idx] = np.reshape(result, (len(result),))
+            jacobian[:, xu_idx] = np.reshape(result, (np.shape(result)[0],))
         jacobian_x = jacobian[:, : len(x)]
         jacobian_u = jacobian[:, len(x) :]
 
@@ -196,12 +195,12 @@ class StateSpaceNonlinear:
         x_copy1[x_idx, 0] = x_copy1[x_idx, 0] - EPSILON
         x_copy2[x_idx, 0] = x_copy2[x_idx, 0] + EPSILON
         if other_args is None:
-            value = (fun(x_copy2) - fun(x_copy1)) / (2 * EPSILON)
+            f2 = fun(x_copy2).as_vector()
+            f1 = fun(x_copy1).as_vector()
         else:
-            value = (fun(x_copy2, other_args) - fun(x_copy1, other_args)) / (
-                2 * EPSILON
-            )
-        return value
+            f2 = fun(x_copy2, other_args).as_vector()
+            f1 = fun(x_copy1, other_args).as_vector()
+        return (f2 - f1) / (2 * EPSILON)
 
     def step(self, x: np.ndarray, u: np.ndarray) -> np.ndarray:
         """Step the state-space model by one step.
@@ -211,21 +210,21 @@ class StateSpaceNonlinear:
         :return: Next state
         """
         xu = np.vstack((x, u))
-        return self.motion_model(xu)
+        return self.motion_model(xu).as_vector()
 
+    @staticmethod
     def predict_z(
-        self, x: np.ndarray, u: np.ndarray, measurement_args: Optional[Any] = None
-    ) -> np.ndarray:
+        state: np.ndarray,
+        measurement: SensorBase,
+        measurement_args: Optional[list[Any]] = None,
+    ) -> SensorBase:
         """Step the state-space model by one step.
 
-        :param x: Current state
-        :param u: Control input
+        :param state: Current state
+        :param measurement: type of measurement used
         :param measurement_args: Additional arguments (e.g., map of features)
         :return: Next state
         """
-        xu = np.vstack((x, u))
         if measurement_args is None:
-            z_pred = self.measurement_model(xu)
-        else:
-            z_pred = self.measurement_model(xu, measurement_args)
-        return z_pred
+            return type(measurement)(state)
+        return type(measurement)(state, measurement_args)

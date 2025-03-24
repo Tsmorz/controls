@@ -81,8 +81,8 @@ def orientation_error(
     :return: Error between the gravity vector and the projected vector in the m/s^2
     """
     gravity = np.linalg.norm(g_vector)
-    rotation = Rot.from_euler(order, angles, degrees=degrees).as_matrix()
-    error = np.linalg.norm(g_vector - gravity * rotation[2, :])
+    rot = Rot.from_euler(order, angles, degrees=degrees).as_matrix()
+    error = np.linalg.norm(g_vector - gravity * rot[2, :])
     return float(error)
 
 
@@ -164,24 +164,24 @@ def apply_linear_acceleration(
 
 if __name__ == "__main__":
     # define the full state
-    dt = 0.01
-    pos = np.zeros((3, 1))
-    vel = np.zeros((3, 1))
-    rot = np.eye(3)
+    delta_t = 0.01
+    position = np.zeros((3, 1))
+    velocity = np.zeros((3, 1))
+    rotation = np.eye(3)
 
     # record the measurements
     for _ii in range(100):
         acc = np.array([[0.0], [0.0], [0.0]])
-        acc += np.reshape(rot[-1, :] * GRAVITY_ACCEL, (3, 1))
+        acc += np.reshape(rotation[-1, :] * GRAVITY_ACCEL, (3, 1))
         omega = np.array([[0.0], [0.0], [5.0]])
 
         # process measurements
-        rot = apply_angular_velocity(matrix=rot, omegas=omega, dt=dt)
-        pos, vel, rot = apply_linear_acceleration(
-            pos=pos, vel=vel, rot=rot, accel=acc, dt=dt
+        rotation = apply_angular_velocity(matrix=rotation, omegas=omega, dt=delta_t)
+        position, velocity, rotation = apply_linear_acceleration(
+            pos=position, vel=velocity, rot=rotation, accel=acc, dt=delta_t
         )
 
-        logger.info(f"Pos.T: {pos.T} m")
-        logger.info(f"Vel.T: {vel.T} m/s")
-        rpy = Rot.from_matrix(matrix=rot).as_euler(EULER_ORDER, degrees=True)
+        logger.info(f"Pos.T: {position.T} m")
+        logger.info(f"Vel.T: {velocity.T} m/s")
+        rpy = Rot.from_matrix(matrix=rotation).as_euler(EULER_ORDER, degrees=True)
         logger.info(f"Roll, pitch, yaw: {rpy[0]:.2f}, {rpy[1]:.2f}, {rpy[2]:.2f} (deg)")

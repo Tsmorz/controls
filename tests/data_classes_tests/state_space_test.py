@@ -8,7 +8,7 @@ from examples.ekf_slam_example import robot_model
 from src.data_classes.lie_algebra import SE3
 from src.data_classes.state_history import StateHistory
 from src.modules.simulator import mass_spring_damper_model
-from src.modules.state_space import StateSpaceLinear, StateSpaceNonlinear
+from src.modules.state_space import StateSpaceLinear
 from tests.conftest import TEST_DECIMALS_ACCURACY
 
 
@@ -151,35 +151,6 @@ def test_impulse_response() -> None:
     assert len(data.covariance) == 0
     assert data.control[0] == np.ones((1, 1))
     assert data.control[-1] == np.zeros((1, 1))
-
-
-def test_state_space_nonlinear() -> None:
-    """Test the initialization of the Kalman filter."""
-
-    def test_func(xu: np.ndarray) -> np.ndarray:
-        x = xu[:2, 0]
-        u = xu[2:, 0]
-        return np.array([[x[0] ** 2 + x[1] + u], [x[0] ** 2 + x[1] + u]])
-
-    state_space_nl = StateSpaceNonlinear(
-        motion_model=test_func, measurement_model=test_func
-    )
-
-    state = np.array([[3.0], [2.0]])
-    A, B = state_space_nl.linearize(
-        model=state_space_nl.motion_model, x=state, u=np.ones((1, 1))
-    )
-    state_space = StateSpaceLinear(A, B)
-
-    exp_A = np.array([[2 * state[0, 0], 1], [2 * state[0, 0], 1]])
-    exp_B = np.array([[1.0], [1.0]])
-
-    np.testing.assert_array_almost_equal(
-        state_space.A, exp_A, decimal=TEST_DECIMALS_ACCURACY
-    )
-    np.testing.assert_array_almost_equal(
-        state_space.B, exp_B, decimal=TEST_DECIMALS_ACCURACY
-    )
 
 
 @pytest.mark.parametrize(

@@ -71,3 +71,8 @@ class SE3:
         matrix = np.hstack((rot, trans))
         matrix = np.vstack((matrix, np.array([[0.0, 0.0, 0.0, 1.0]])))
         return matrix
+
+
+def state_to_se3(state: np.ndarray) -> SE3:
+    """Map the state vector to SE2."""
+    return SE3(xyz=state[0:3], roll_pitch_yaw=state[3:6])
