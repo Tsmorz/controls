@@ -4,7 +4,7 @@ from typing import Any, Optional
 
 import numpy as np
 
-from config.definitions import DEFAULT_CONTROL, MEASUREMENT_NOISE, PROCESS_NOISE
+from config.definitions import DEFAULT_CONTROL
 from src.data_classes.sensors import SensorBase
 from src.modules.math_utils import symmetrize_matrix
 from src.modules.state_space import StateSpaceLinear, StateSpaceNonlinear
@@ -18,7 +18,8 @@ class ExtendedKalmanFilter:
         state_space_nonlinear: StateSpaceNonlinear,
         initial_x: np.ndarray,
         initial_covariance: np.ndarray,
-        process_noise: Optional[np.ndarray] = None,
+        process_noise: float,
+        measurement_noise: float,
     ) -> None:
         """Initialize the Extended Kalman Filter.
 
@@ -28,12 +29,9 @@ class ExtendedKalmanFilter:
         :param process_noise: Process noise covariance
         :return: None
         """
-        self.state_space_nl = state_space_nonlinear
-
-        if process_noise is None:
-            process_noise = PROCESS_NOISE * np.eye(len(initial_x))
-        self.Q: np.ndarray = process_noise
-
+        self.state_space_nonlinear = state_space_nonlinear
+        self.Q: np.ndarray = process_noise * np.eye(len(initial_x))
+        self.measurement_noise = measurement_noise
         self.x: np.ndarray = initial_x
         self.cov: np.ndarray = initial_covariance
 
@@ -42,12 +40,12 @@ class ExtendedKalmanFilter:
 
         :param u: Control input
         """
-        A, B = self.state_space_nl.linearize(
-            model=self.state_space_nl.motion_model, x=self.x, u=u
+        A, B = self.state_space_nonlinear.linearize(
+            model=self.state_space_nonlinear.motion_model, x=self.x, u=u
         )
         state_space = StateSpaceLinear(A, B)
 
-        self.x = self.state_space_nl.step(x=self.x, u=u)
+        self.x = self.state_space_nonlinear.step(x=self.x, u=u)
         self.cov = state_space.A @ self.cov @ state_space.A.T + self.Q
         self.cov = symmetrize_matrix(self.cov)
 
@@ -64,12 +62,12 @@ class ExtendedKalmanFilter:
         :param measurement_args: Additional arguments (e.g., map of features)
         :return: Updated state estimate and state covariance
         """
-        A, B = self.state_space_nl.linearize(
-            model=self.state_space_nl.motion_model,
+        A, B = self.state_space_nonlinear.linearize(
+            model=self.state_space_nonlinear.motion_model,
             x=self.x,
             u=u,
         )
-        C, D = self.state_space_nl.linearize(
+        C, D = self.state_space_nonlinear.linearize(
             model=type(z),
             x=self.x,
             u=u,
@@ -77,13 +75,16 @@ class ExtendedKalmanFilter:
         )
         state_space = StateSpaceLinear(A, B, C, D)
 
-        predict_z = self.state_space_nl.predict_z(
+        predict_z = self.state_space_nonlinear.predict_z(
             state=self.x,
             measurement=z,
             measurement_args=measurement_args,
         )
         y = z.as_vector() - predict_z.as_vector()
-        R = MEASUREMENT_NOISE * np.eye(len(z.as_vector()))
+        # print(y)
+        # if np.max(np.abs(y)) > 1:
+        #     self.cov = 10 * self.cov
+        R = self.measurement_noise * np.eye(len(z.as_vector()))
         S = state_space.C @ self.cov @ state_space.C.T + R
         K = self.cov @ state_space.C.T @ np.linalg.inv(S)
         self.x = self.x + K @ y

@@ -23,7 +23,12 @@ class SensorType(Enum):
 class SensorBase(ABC):
     """Abstract base class for sensor measurements."""
 
-    def __init__(self, state: np.ndarray, features: Optional[list[Any]] = None):
+    def __init__(
+        self,
+        state: np.ndarray,
+        features: Optional[list[Any]] = None,
+        noise: Optional[float] = None,
+    ):
         self.pose = state_to_se3(state)
 
     @abstractmethod
@@ -35,14 +40,23 @@ class SensorBase(ABC):
 class Distance(SensorBase):
     """Construct a distance sensor measurement."""
 
-    def __init__(self, state: np.ndarray, features: list[Feature]):
+    def __init__(
+        self, state: np.ndarray, features: list[Feature], noise: Optional[float] = None
+    ):
         SensorBase.__init__(self, state, features)
         pose = state_to_se3(state)
         dx = np.array([feature.x for feature in features]) - pose.x
         dy = np.array([feature.y for feature in features]) - pose.y
-        self.distance: np.ndarray = np.sqrt(dx**2 + dy**2)
+        distance = np.sqrt(dx**2 + dy**2)
+        if noise is not None:
+            measurement_noise = np.random.normal(
+                loc=0.0,
+                scale=noise,
+                size=dx.shape,
+            )
+            distance = distance + measurement_noise
+        self.distance: np.ndarray = distance
         self.type = SensorType.DISTANCE
-        self.dim = 1
 
     def as_vector(self) -> np.ndarray:
         """Represent the data as a 1-by-n matrix."""
@@ -57,14 +71,23 @@ class Distance(SensorBase):
 class Bearing(SensorBase):
     """Construct a bearing sensor measurement."""
 
-    def __init__(self, state: np.ndarray, features: list[Feature]):
+    def __init__(
+        self, state: np.ndarray, features: list[Feature], noise: Optional[float] = None
+    ):
         SensorBase.__init__(self, state, features)
         pose = state_to_se3(state)
         dx = np.array([feature.x for feature in features]) - pose.x
         dy = np.array([feature.y for feature in features]) - pose.y
-        self.bearing: np.ndarray = np.arctan2(dy, dx) - pose.yaw
+        bearing = np.arctan2(dy, dx) - pose.yaw
+        if noise is not None:
+            measurement_noise = np.random.normal(
+                loc=0.0,
+                scale=noise,
+                size=dx.shape,
+            )
+            bearing = bearing + measurement_noise
+        self.bearing: np.ndarray = bearing
         self.type = SensorType.BEARING
-        self.dim = 1
 
     def as_vector(self) -> np.ndarray:
         """Represent the data as a 1-by-n matrix."""
@@ -79,11 +102,12 @@ class Bearing(SensorBase):
 class DistanceAndBearing(Distance, Bearing):
     """Construct a distance and bearing sensor measurement."""
 
-    def __init__(self, state: np.ndarray, features: list[Feature]):
-        Distance.__init__(self, state, features)
-        Bearing.__init__(self, state, features)
+    def __init__(
+        self, state: np.ndarray, features: list[Feature], noise: Optional[float] = None
+    ):
+        Distance.__init__(self, state, features, noise)
+        Bearing.__init__(self, state, features, noise)
         self.type = SensorType.DISTANCE_AND_BEARING
-        self.dim = 2
 
     def as_vector(self) -> np.ndarray:
         """Represent the data as a 1-by-n matrix."""
@@ -117,7 +141,6 @@ class Dynamics:
         state_vec[4, 0] = pose.pitch
         state_vec[5, 0] = pose.yaw + omega[0]
         self.state_vec = state_vec
-        self.dim = 6
 
     def as_vector(self) -> np.ndarray:
         """Represent the data as a 1-by-n matrix."""
