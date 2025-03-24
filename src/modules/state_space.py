@@ -191,6 +191,14 @@ class StateSpaceNonlinear:
         x_idx: int,
         other_args: Optional[Any] = None,
     ) -> np.ndarray | float:
+        """Compute the derivative of the given function.
+
+        :param fun: Function to compute derivative
+        :param x: Current state
+        :param x_idx: Index of the variable to differentiate
+        :param other_args: Additional arguments (e.g., list of features)
+        :return: Derivative value
+        """
         x_copy1, x_copy2 = copy.copy(x), copy.copy(x)
         x_copy1[x_idx, 0] = x_copy1[x_idx, 0] - EPSILON
         x_copy2[x_idx, 0] = x_copy2[x_idx, 0] + EPSILON
