@@ -78,7 +78,7 @@ def make_random_map_planar(
             id=num,
             x=np.random.uniform(0, dim[0]),
             y=np.random.uniform(0, dim[1]),
-            z=0.0,
+            z=np.random.uniform(0, dim[1]),
         )
         new_map.append_feature(map_feature)
     return new_map

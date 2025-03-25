@@ -16,8 +16,9 @@ class SensorType(Enum):
     GPS = auto()
     IMU = auto()
     DISTANCE = auto()
-    BEARING = auto()
-    DISTANCE_AND_BEARING = auto()
+    ELEVATION = auto()
+    AZIMUTH = auto()
+    DISTANCE_AZIMUTH_ELEVATION = auto()
 
 
 class SensorBase(ABC):
@@ -72,7 +73,7 @@ class Distance(SensorBase):
 
 
 class Azimuth(SensorBase):
-    """Construct a bearing sensor measurement."""
+    """Construct a azimuth sensor measurement."""
 
     def __init__(
         self, state: np.ndarray, features: list[Feature], noise: Optional[float] = None
@@ -83,8 +84,7 @@ class Azimuth(SensorBase):
         dy = np.array([feature.y for feature in features]) - pose.y
         dz = np.array([feature.z for feature in features]) - pose.z
         distance = np.sqrt(dx**2 + dy**2 + dz**2)
-
-        bearing = np.arctan2(dy, dx) - pose.yaw
+        azimuth = np.arctan2(dy, dx) - pose.yaw
 
         if noise is not None:
             measurement_noise = np.random.normal(
@@ -92,21 +92,55 @@ class Azimuth(SensorBase):
                 scale=noise / (1 + distance),
                 size=dx.shape,
             )
-            bearing = bearing + measurement_noise
-        self.bearing: np.ndarray = bearing
-        self.type = SensorType.BEARING
+            azimuth = azimuth + measurement_noise
+        self.azimuth: np.ndarray = azimuth
+        self.type = SensorType.AZIMUTH
 
     def as_vector(self) -> np.ndarray:
         """Represent the data as a 1-by-n matrix."""
-        return self.bearing.reshape((len(self.bearing), 1))
+        return self.azimuth.reshape((len(self.azimuth), 1))
 
     def __str__(self) -> str:
         """Return a string representation of the sensor measurements."""
-        bearing_str = np.array2string(self.bearing, precision=2, floatmode="fixed")
-        return f"{self.type.name}(bearing:{bearing_str})"
+        azimuth_str = np.array2string(self.azimuth, precision=2, floatmode="fixed")
+        return f"{self.type.name}(bearing:{azimuth_str})"
 
 
-class DistanceAndAzimuth(Distance, Azimuth):
+class Elevation(SensorBase):
+    """Construct a elevation sensor measurement."""
+
+    def __init__(
+        self, state: np.ndarray, features: list[Feature], noise: Optional[float] = None
+    ):
+        SensorBase.__init__(self, state, features)
+        pose = state_to_se3(state)
+        dx = np.array([feature.x for feature in features]) - pose.x
+        dy = np.array([feature.y for feature in features]) - pose.y
+        dz = np.array([feature.z for feature in features]) - pose.z
+        distance = np.sqrt(dx**2 + dy**2 + dz**2)
+        elevation = np.arctan2(dz, dx)
+
+        if noise is not None:
+            measurement_noise = np.random.normal(
+                loc=0.0,
+                scale=noise / (1 + distance),
+                size=dx.shape,
+            )
+            elevation = elevation + 0.0 * measurement_noise
+        self.elevation: np.ndarray = elevation
+        self.type = SensorType.ELEVATION
+
+    def as_vector(self) -> np.ndarray:
+        """Represent the data as a 1-by-n matrix."""
+        return self.elevation.reshape((len(self.elevation), 1))
+
+    def __str__(self) -> str:
+        """Return a string representation of the sensor measurements."""
+        elevation_str = np.array2string(self.elevation, precision=2, floatmode="fixed")
+        return f"{self.type.name}(elevation:{elevation_str})"
+
+
+class DistanceAzimuthElevation(Distance, Azimuth, Elevation):
     """Construct a distance and bearing sensor measurement."""
 
     def __init__(
@@ -114,18 +148,24 @@ class DistanceAndAzimuth(Distance, Azimuth):
     ):
         Distance.__init__(self, state, features, noise)
         Azimuth.__init__(self, state, features, noise)
-        self.type = SensorType.DISTANCE_AND_BEARING
+        Elevation.__init__(self, state, features, noise)
+        self.type = SensorType.DISTANCE_AZIMUTH_ELEVATION
 
     def as_vector(self) -> np.ndarray:
         """Represent the data as a 1-by-n matrix."""
-        merged = np.array((self.distance, self.bearing)).T.ravel()
+        merged = np.array((self.distance, self.azimuth)).T.ravel()
         return merged.reshape((len(merged), 1))
 
     def __str__(self) -> str:
         """Return a string representation of the sensor measurements."""
         distance_str = np.array2string(self.distance, precision=2, floatmode="fixed")
-        bearing_str = np.array2string(self.bearing, precision=2, floatmode="fixed")
-        return f"{self.type.name}(distance:{distance_str}, bearing:{bearing_str})"
+        azimuth_str = np.array2string(self.azimuth, precision=2, floatmode="fixed")
+        elevation_str = np.array2string(self.elevation, precision=2, floatmode="fixed")
+        return (
+            f"{self.type.name}(distance:{distance_str},"
+            f" azimuth:{azimuth_str},"
+            f" elevation:{elevation_str})"
+        )
 
 
 class Dynamics:
@@ -157,8 +197,8 @@ class Dynamics:
 def get_measurement(
     state: np.ndarray,
     features: list[Any],
-    sensor: type[DistanceAndAzimuth | Distance | Azimuth],
-) -> DistanceAndAzimuth | Distance | Azimuth:
+    sensor: type[DistanceAzimuthElevation | Distance | Azimuth | Elevation],
+) -> DistanceAzimuthElevation | Distance | Azimuth | Elevation:
     """Get a sample measurement for the given sensor.
 
     :param state: the current state of the system

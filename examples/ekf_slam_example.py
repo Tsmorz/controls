@@ -15,7 +15,7 @@ from config.definitions import (
 from src.data_classes.lie_algebra import SE3, state_to_se3
 from src.data_classes.map import make_random_map_planar
 from src.data_classes.sensors import (
-    DistanceAndAzimuth,
+    DistanceAzimuthElevation,
     Dynamics,
 )
 from src.data_classes.slam import Map, PoseMap
@@ -102,13 +102,12 @@ class SlamSimulator:
 
         :param u: Control input
         """
-        scale = np.diag(self.Q)
-        scale = np.reshape(scale, (self.Q.shape[0], 1))
+        scale = np.reshape(np.diag(self.Q), (self.Q.shape[0], 1))
         noise = np.random.normal(loc=0.0, scale=scale, size=(self.Q.shape[0], 1))
         x = self.state_space_nl.step(x=self.pose.as_vector(), u=u) + noise
 
         # set z pos, roll, and pitch to zero
-        x[2, 0], x[3, 0], x[4, 0] = 0.0, 0.0, 0.0
+        x[2, 0] = 3  # , x[3, 0], x[4, 0] = 0.0, 0.0, 0.0
 
         self.pose = SE3(xyz=x[0:3], roll_pitch_yaw=x[3:6])
         return self.pose
@@ -136,7 +135,7 @@ class SlamSimulator:
     def plot_covariance(self, pose, covariance):
         """Add a drawing of the robot covariance to the plot."""
         x_cov, y_cov = np.linalg.eigvals(covariance[:2, :2])
-        ang_cov = np.arctan2(y_cov, x_cov) * 180 / np.pi
+        ang_cov = np.rad2deg(np.arctan2(y_cov, x_cov))
         ellipse = Ellipse(
             xy=(float(pose.x), float(pose.y)),
             width=x_cov,
@@ -152,8 +151,10 @@ class SlamSimulator:
 def pipeline() -> None:
     """Run the EKF for SLAM."""
     logger.info("Running Extended Kalman Filter pipeline.")
-
-    robot_pose = SE3(xyz=np.zeros((3,)), roll_pitch_yaw=np.zeros((3,)))
+    xyz = np.zeros((3,))
+    xyz[2] = 3.0
+    roll_pitch_yaw = np.zeros((3,))
+    robot_pose = SE3(xyz=xyz, roll_pitch_yaw=roll_pitch_yaw)
     pose_map = PoseMap(pose=robot_pose)
 
     ekf = ExtendedKalmanFilter(
@@ -168,7 +169,7 @@ def pipeline() -> None:
         state_space_nl=ekf.state_space_nonlinear,
         process_noise=ekf.Q,
         initial_pose=pose_map.pose,
-        sim_map=make_random_map_planar(num_features=2, dim=(20, 20)),
+        sim_map=make_random_map_planar(num_features=20, dim=(20, 20)),
         steps=100,
     )
 
@@ -180,7 +181,7 @@ def pipeline() -> None:
         pose_map.pose = SE3(xyz=ekf.x[0:3, 0], roll_pitch_yaw=ekf.x[3:6, 0])
 
         if (time / 15) % 1 == 0 and time != 0:
-            meas = DistanceAndAzimuth(
+            meas = DistanceAzimuthElevation(
                 state=sim.pose.as_vector(),
                 features=sim.map.features,
                 noise=PROCESS_NOISE,
@@ -190,7 +191,7 @@ def pipeline() -> None:
             add_measurement_to_plot(
                 sim_plot=sim.sim_plot,
                 distances=meas.distance,
-                bearings=meas.bearing,
+                bearings=meas.azimuth,
                 state=ekf.x,
             )
             for feat in sim.map.features:
