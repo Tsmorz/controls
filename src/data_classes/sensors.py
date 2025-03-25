@@ -47,7 +47,9 @@ class Distance(SensorBase):
         pose = state_to_se3(state)
         dx = np.array([feature.x for feature in features]) - pose.x
         dy = np.array([feature.y for feature in features]) - pose.y
-        distance = np.sqrt(dx**2 + dy**2)
+        dz = np.array([feature.z for feature in features]) - pose.z
+        distance = np.sqrt(dx**2 + dy**2 + dz**2)
+
         if noise is not None:
             measurement_noise = np.random.normal(
                 loc=0.0,
@@ -55,6 +57,7 @@ class Distance(SensorBase):
                 size=dx.shape,
             )
             distance = distance + measurement_noise
+
         self.distance: np.ndarray = distance
         self.type = SensorType.DISTANCE
 
@@ -68,7 +71,7 @@ class Distance(SensorBase):
         return f"{self.type.name}(distance:{distance_str})"
 
 
-class Bearing(SensorBase):
+class Azimuth(SensorBase):
     """Construct a bearing sensor measurement."""
 
     def __init__(
@@ -78,11 +81,15 @@ class Bearing(SensorBase):
         pose = state_to_se3(state)
         dx = np.array([feature.x for feature in features]) - pose.x
         dy = np.array([feature.y for feature in features]) - pose.y
+        dz = np.array([feature.z for feature in features]) - pose.z
+        distance = np.sqrt(dx**2 + dy**2 + dz**2)
+
         bearing = np.arctan2(dy, dx) - pose.yaw
+
         if noise is not None:
             measurement_noise = np.random.normal(
                 loc=0.0,
-                scale=noise,
+                scale=noise / (1 + distance),
                 size=dx.shape,
             )
             bearing = bearing + measurement_noise
@@ -99,14 +106,14 @@ class Bearing(SensorBase):
         return f"{self.type.name}(bearing:{bearing_str})"
 
 
-class DistanceAndBearing(Distance, Bearing):
+class DistanceAndAzimuth(Distance, Azimuth):
     """Construct a distance and bearing sensor measurement."""
 
     def __init__(
         self, state: np.ndarray, features: list[Feature], noise: Optional[float] = None
     ):
         Distance.__init__(self, state, features, noise)
-        Bearing.__init__(self, state, features, noise)
+        Azimuth.__init__(self, state, features, noise)
         self.type = SensorType.DISTANCE_AND_BEARING
 
     def as_vector(self) -> np.ndarray:
@@ -150,8 +157,8 @@ class Dynamics:
 def get_measurement(
     state: np.ndarray,
     features: list[Any],
-    sensor: type[DistanceAndBearing | Distance | Bearing],
-) -> DistanceAndBearing | Distance | Bearing:
+    sensor: type[DistanceAndAzimuth | Distance | Azimuth],
+) -> DistanceAndAzimuth | Distance | Azimuth:
     """Get a sample measurement for the given sensor.
 
     :param state: the current state of the system

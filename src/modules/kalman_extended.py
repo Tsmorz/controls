@@ -81,9 +81,6 @@ class ExtendedKalmanFilter:
             measurement_args=measurement_args,
         )
         y = z.as_vector() - predict_z.as_vector()
-        # print(y)
-        # if np.max(np.abs(y)) > 1:
-        #     self.cov = 10 * self.cov
         R = self.measurement_noise * np.eye(len(z.as_vector()))
         S = state_space.C @ self.cov @ state_space.C.T + R
         K = self.cov @ state_space.C.T @ np.linalg.inv(S)

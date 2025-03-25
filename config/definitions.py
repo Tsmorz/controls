@@ -13,7 +13,7 @@ PAUSE_TIME = 0.05
 # Kalman filter definitions
 DEFAULT_VARIANCE = 1e-2
 PROCESS_NOISE = 5e-2
-MEASUREMENT_NOISE = 5e-2
+MEASUREMENT_NOISE = 1e-1
 DEFAULT_CONTROL = np.array([[0.0], [0.0]])
 
 # State space definitions

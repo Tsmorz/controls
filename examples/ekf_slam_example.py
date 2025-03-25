@@ -15,7 +15,7 @@ from config.definitions import (
 from src.data_classes.lie_algebra import SE3, state_to_se3
 from src.data_classes.map import make_random_map_planar
 from src.data_classes.sensors import (
-    DistanceAndBearing,
+    DistanceAndAzimuth,
     Dynamics,
 )
 from src.data_classes.slam import Map, PoseMap
@@ -44,7 +44,7 @@ def add_measurement_to_plot(
         (m,) = plt.plot([x1, x2], [y1, y2], "k-", alpha=0.2)
         rays.append(m)
     ax.axis("equal")
-    plt.pause(20 * PAUSE_TIME)
+    plt.pause(PAUSE_TIME)
 
     # remove the sensor measurements
     for ray in rays:
@@ -119,31 +119,34 @@ class SlamSimulator:
         self.history.append((pose, self.pose))
         self.plot_pose(pose=pose, color="blue")
         self.plot_pose(pose=self.pose, color="red")
-
-        x_cov, y_cov = np.linalg.eigvals(cov[:2, :2])
-        ang_cov = np.arctan2(np.sqrt(y_cov), np.sqrt(x_cov)) * 180 / np.pi
-        ellipse = Ellipse(
-            xy=(float(pose.x), float(pose.y)),
-            width=np.sqrt(x_cov),
-            height=np.sqrt(y_cov),
-            angle=ang_cov,
-            fc="None",
-            edgecolor="k",
-        )
-        cov_plot = self.sim_plot[1].add_patch(ellipse)
-
+        cov_plot = self.plot_covariance(pose=pose, covariance=cov)
         plt.axis("equal")
         plt.draw()
         plt.pause(PAUSE_TIME)
         cov_plot.remove()
 
     def plot_pose(self, pose, color):
-        """Add a drawing to the plot of a pose."""
+        """Add a drawing of the robot pose to the plot."""
         fig, ax = self.sim_plot
         ax.plot([pose.x, pose.x], [pose.y, pose.y], "k-", alpha=0.8)
         dx, dy = VECTOR_LENGTH * np.cos(pose.yaw), VECTOR_LENGTH * np.sin(pose.yaw)
         ax.arrow(x=pose.x, y=pose.y, dx=dx, dy=dy, width=0.01, color=color)
         plt.draw()
+
+    def plot_covariance(self, pose, covariance):
+        """Add a drawing of the robot covariance to the plot."""
+        x_cov, y_cov = np.linalg.eigvals(covariance[:2, :2])
+        ang_cov = np.arctan2(y_cov, x_cov) * 180 / np.pi
+        ellipse = Ellipse(
+            xy=(float(pose.x), float(pose.y)),
+            width=x_cov,
+            height=y_cov,
+            angle=ang_cov,
+            fc="None",
+            edgecolor="k",
+        )
+        cov_ellipse = self.sim_plot[1].add_patch(ellipse)
+        return cov_ellipse
 
 
 def pipeline() -> None:
@@ -156,7 +159,7 @@ def pipeline() -> None:
     ekf = ExtendedKalmanFilter(
         state_space_nonlinear=robot_model(),
         initial_x=pose_map.pose.as_vector(),
-        initial_covariance=0.001 * np.eye(robot_pose.as_vector().shape[0]),
+        initial_covariance=0.5 * np.eye(robot_pose.as_vector().shape[0]),
         process_noise=PROCESS_NOISE,
         measurement_noise=MEASUREMENT_NOISE,
     )
@@ -165,7 +168,7 @@ def pipeline() -> None:
         state_space_nl=ekf.state_space_nonlinear,
         process_noise=ekf.Q,
         initial_pose=pose_map.pose,
-        sim_map=make_random_map_planar(num_features=8, dim=(25, 25)),
+        sim_map=make_random_map_planar(num_features=2, dim=(20, 20)),
         steps=100,
     )
 
@@ -177,13 +180,11 @@ def pipeline() -> None:
         pose_map.pose = SE3(xyz=ekf.x[0:3, 0], roll_pitch_yaw=ekf.x[3:6, 0])
 
         if (time / 15) % 1 == 0 and time != 0:
-            meas = DistanceAndBearing(
+            meas = DistanceAndAzimuth(
                 state=sim.pose.as_vector(),
                 features=sim.map.features,
-                noise=ekf.measurement_noise,
+                noise=PROCESS_NOISE,
             )
-
-            logger.info(f"Measurement={meas}")
             ekf.update(z=meas, u=control_input, measurement_args=sim.map.features)
 
             add_measurement_to_plot(
@@ -192,16 +193,16 @@ def pipeline() -> None:
                 bearings=meas.bearing,
                 state=ekf.x,
             )
-            # for feat in sim.map.features:
-            #     pose_map.map.append_feature(feature=feat)
+            for feat in sim.map.features:
+                pose_map.map.append_feature(feature=feat)
 
         robot_pose = state_to_se3(state=ekf.x)
         sim.append_estimate(estimate=(robot_pose, ekf.cov))
 
-        # x_str = np.array2string(ekf.x.T, precision=3, floatmode="fixed")
-        # cov_str = np.array2string(ekf.cov, precision=3, floatmode="fixed")
-        # logger.info(f"state: {x_str}")
-        # logger.info(f"cov:\n{cov_str}")
+        x_str = np.array2string(ekf.x.T, precision=3, floatmode="fixed")
+        logger.info(f"state: {x_str}")
+        cov_str = np.array2string(np.diag(ekf.cov), precision=3, floatmode="fixed")
+        logger.info(f"cov: {cov_str}")
 
     plt.show()
     plt.close()
