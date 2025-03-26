@@ -7,6 +7,7 @@ import numpy as np
 from loguru import logger
 
 from config.definitions import MAP_DIM, MAP_NUM_FEATURES
+from src.data_classes.lie_algebra import SE3
 
 
 @dataclass
@@ -115,3 +116,19 @@ def make_box_map_planar(
         new_map.append_feature(map_feature)
 
     return new_map
+
+
+def distance_to_features(
+    pose: SE3, features: list[Feature]
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Calculate the distance between an SE3 pose and list of features.
+
+    :param pose: SE3 pose
+    :param features: List of features
+    :return: (dx, dy, dz) - Distance vectors to each feature
+    """
+    dx = np.array([feature.x for feature in features]) - pose.x
+    dy = np.array([feature.y for feature in features]) - pose.y
+    dz = np.array([feature.z for feature in features]) - pose.z
+
+    return dx, dy, dz

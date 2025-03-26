@@ -6,7 +6,7 @@ import numpy as np
 from loguru import logger
 from scipy.spatial.transform import Rotation as Rot
 
-from config.definitions import EULER_ORDER
+from config.definitions import EULER_ORDER, PLOT_ALPHA, VECTOR_LENGTH
 
 
 class SE3:
@@ -18,13 +18,15 @@ class SE3:
         roll_pitch_yaw: Optional[np.ndarray] = None,
     ):
         if xyz is None:
-            xyz = np.array([[0.0], [0.0], [0.0]])
+            xyz = np.zeros(3)
         if xyz.shape == (3,):
             xyz = np.reshape(xyz, (3, 1))
+
         if roll_pitch_yaw is None:
-            roll_pitch_yaw = np.array([[0.0], [0.0], [0.0]])
+            roll_pitch_yaw = np.zeros(3)
         if roll_pitch_yaw.shape == (3,):
             roll_pitch_yaw = np.reshape(roll_pitch_yaw, (3, 1))
+
         self.x: float = float(xyz[0, 0])
         self.y: float = float(xyz[1, 0])
         self.z: float = float(xyz[2, 0])
@@ -72,7 +74,18 @@ class SE3:
         matrix = np.vstack((matrix, np.array([[0.0, 0.0, 0.0, 1.0]])))
         return matrix
 
+    def plot_se3(self, plot, color: str) -> None:
+        """Add a drawing of the robot pose to the plot."""
+        fig, ax = plot
+        ax.plot([self.x, self.x], [self.y, self.y], "k-", alpha=PLOT_ALPHA)
+        dx, dy = VECTOR_LENGTH * np.cos(self.yaw), VECTOR_LENGTH * np.sin(self.yaw)
+        ax.arrow(x=self.x, y=self.y, dx=dx, dy=dy, width=0.01, color=color)
+
 
 def state_to_se3(state: np.ndarray) -> SE3:
-    """Map the state vector to SE2."""
+    """Map the state vector to SE2.
+
+    :param state: state vector
+    :return: SE3 pose
+    """
     return SE3(xyz=state[0:3], roll_pitch_yaw=state[3:6])

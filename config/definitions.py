@@ -25,8 +25,8 @@ SIGMA_PITCH = 1e-5
 SIGMA_YAW = 1e-2
 
 # control noise
-SIGMA_VEL = 1e-1
-SIGMA_OMEGA = 1e-1
+SIGMA_VEL = 2e-1
+SIGMA_OMEGA = 4e-2
 
 # State space definitions
 DEFAULT_DT = 1.0

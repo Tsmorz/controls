@@ -11,7 +11,7 @@ from config.definitions import (
     DEFAULT_DISCRETIZATION,
     DELTA_T,
     PAUSE_TIME,
-    VECTOR_LENGTH,
+    PLOT_ALPHA,
 )
 from src.data_classes.lie_algebra import SE3
 from src.data_classes.sensors import DistanceAzimuthElevation
@@ -67,10 +67,10 @@ class SlamSimulator:
         self.map: Map = sim_map
         self.last_measurement: Optional[DistanceAzimuthElevation] = None
         self.time_stamps: np.ndarray = np.arange(
-            start=0.0, stop=100 / DELTA_T, step=DELTA_T
+            start=0.0, stop=1000 / DELTA_T, step=DELTA_T
         )
         self.controls = get_angular_velocities_for_box(
-            steps=len(self.time_stamps), radius_steps=6
+            steps=len(self.time_stamps), radius_steps=8
         )
 
         fig = plt.figure(figsize=(8, 8))
@@ -99,33 +99,30 @@ class SlamSimulator:
         self,
         estimate: tuple[SE3, np.ndarray],
         measurement: Optional[DistanceAzimuthElevation] = None,
+        show_plot: bool = True,
     ) -> None:
         """Update the state estimate based on an estimated pose."""
         pose, cov = estimate
         self.history.append((pose, self.pose))
-        self.plot_pose(pose=pose, color="blue")
-        self.plot_pose(pose=self.pose, color="red")
-        if self.last_measurement != measurement and measurement is not None:
-            self.plot_measurement(pose=pose, measurement=measurement)
+
+        if show_plot:
+            self.pose.plot_se3(plot=self.sim_plot, color="red")
+            pose.plot_se3(plot=self.sim_plot, color="blue")
+            cov_plot = self.plot_covariance(pose=pose, covariance=cov)
+            rays = self.plot_measurement(pose=pose, measurement=measurement)
             self.last_measurement = measurement
+            plt.axis("equal")
+            plt.pause(PAUSE_TIME)
 
-        cov_plot = self.plot_covariance(pose=pose, covariance=cov)
-        plt.axis("equal")
-        plt.draw()
-        plt.pause(PAUSE_TIME)
-        cov_plot.remove()
-
-    def plot_pose(self, pose: SE3, color: str) -> None:
-        """Add a drawing of the robot pose to the plot."""
-        fig, ax = self.sim_plot
-        ax.plot([pose.x, pose.x], [pose.y, pose.y], "k-", alpha=0.8)
-        dx, dy = VECTOR_LENGTH * np.cos(pose.yaw), VECTOR_LENGTH * np.sin(pose.yaw)
-        ax.arrow(x=pose.x, y=pose.y, dx=dx, dy=dy, width=0.01, color=color)
-        plt.draw()
+            # remove the sensor measurements
+            cov_plot.remove()
+            for ray in rays:
+                ray.remove()
 
     def plot_covariance(self, pose: SE3, covariance: np.ndarray):
         """Add a drawing of the robot covariance to the plot."""
         x_cov, y_cov = np.linalg.eigvals(covariance[:2, :2])
+        x_cov, y_cov = np.clip(x_cov, -10, 10), np.clip(y_cov, -10, 10)
         ang_cov = np.rad2deg(np.arctan2(y_cov, x_cov))
         ellipse = Ellipse(
             xy=(float(pose.x), float(pose.y)),
@@ -134,29 +131,27 @@ class SlamSimulator:
             angle=ang_cov,
             fc="None",
             edgecolor="k",
+            alpha=PLOT_ALPHA,
         )
         cov_ellipse = self.sim_plot[1].add_patch(ellipse)
         return cov_ellipse
 
     def plot_measurement(
         self,
-        measurement: DistanceAzimuthElevation,
+        measurement: Optional[DistanceAzimuthElevation],
         pose: SE3,
-    ) -> None:
+    ):
         """Plot the simulation results."""
         # TODO: make the plot work for 3D features with azimuth and elevation
-        fig, ax = self.sim_plot
-        rays = []
-        for dist, azi, _ in zip(
-            measurement.distance, measurement.azimuth, measurement.elevation
-        ):
-            x1, x2 = pose.x, pose.x + dist * np.cos(pose.yaw + azi)
-            y1, y2 = pose.y, pose.y + dist * np.sin(pose.yaw + azi)
-            (m,) = plt.plot([x1, x2], [y1, y2], "k-", alpha=0.2)
-            rays.append(m)
-        ax.axis("equal")
-        plt.pause(PAUSE_TIME)
-
-        # remove the sensor measurements
-        for ray in rays:
-            ray.remove()
+        rays: list[plt.Line2D] = []
+        if self.last_measurement != measurement and measurement is not None:
+            fig, ax = self.sim_plot
+            rays = []
+            dae = zip(measurement.distance, measurement.azimuth, measurement.elevation)
+            for dist, azi, _ in dae:
+                x1, x2 = pose.x, pose.x + dist * np.cos(pose.yaw + azi)
+                y1, y2 = pose.y, pose.y + dist * np.sin(pose.yaw + azi)
+                (m,) = ax.plot([x1, x2], [y1, y2], "k-", alpha=0.2)
+                rays.append(m)
+            return rays
+        return rays

@@ -8,7 +8,7 @@ import numpy as np
 
 from config.definitions import DELTA_T
 from src.data_classes.lie_algebra import state_to_se3
-from src.data_classes.map import Feature
+from src.data_classes.map import Feature, distance_to_features
 
 
 class SensorType(Enum):
@@ -47,9 +47,7 @@ class Distance(SensorBase):
     ):
         SensorBase.__init__(self, state, features)
         pose = state_to_se3(state)
-        dx = np.array([feature.x for feature in features]) - pose.x
-        dy = np.array([feature.y for feature in features]) - pose.y
-        dz = np.array([feature.z for feature in features]) - pose.z
+        dx, dy, dz = distance_to_features(pose=pose, features=features)
         distance = np.sqrt(dx**2 + dy**2 + dz**2)
         if noise is not None:
             measurement_noise = np.random.normal(
@@ -80,9 +78,7 @@ class Azimuth(SensorBase):
     ):
         SensorBase.__init__(self, state, features)
         pose = state_to_se3(state)
-        dx = np.array([feature.x for feature in features]) - pose.x
-        dy = np.array([feature.y for feature in features]) - pose.y
-        dz = np.array([feature.z for feature in features]) - pose.z
+        dx, dy, dz = distance_to_features(pose=pose, features=features)
         distance = np.sqrt(dx**2 + dy**2 + dz**2)
         azimuth = np.arctan2(dy, dx) - pose.yaw
 
@@ -114,9 +110,7 @@ class Elevation(SensorBase):
     ):
         SensorBase.__init__(self, state, features)
         pose = state_to_se3(state)
-        dx = np.array([feature.x for feature in features]) - pose.x
-        dy = np.array([feature.y for feature in features]) - pose.y
-        dz = np.array([feature.z for feature in features]) - pose.z
+        dx, dy, dz = distance_to_features(pose=pose, features=features)
         distance = np.sqrt(dx**2 + dy**2 + dz**2)
         elevation = np.arctan2(dz, dx)
 
@@ -193,3 +187,27 @@ class Dynamics:
     def as_vector(self) -> np.ndarray:
         """Represent the data as a 1-by-n matrix."""
         return self.state_vec
+
+
+def get_azimuth(
+    state: np.ndarray, features: list[Feature], noise: Optional[np.ndarray] = None
+) -> np.ndarray:
+    """Calculate the azimuth angle from a given pose to a list of features.
+
+    :param state: the current state vector
+    :param features: the list of features
+    :param noise: optional noise vector for measurement
+    :return: the azimuth angles
+    """
+    pose = state_to_se3(state)
+    dx, dy, dz = distance_to_features(pose=pose, features=features)
+    dist = np.sqrt(dx**2 + dy**2 + dz**2)
+
+    azimuth = np.arctan2(dy, dx) - pose.yaw
+    if noise is not None:
+        measurement_noise = np.random.normal(
+            loc=0.0, scale=noise / (1 + dist), size=dx.shape
+        )
+        azimuth = azimuth + measurement_noise
+
+    return azimuth.reshape((len(azimuth), 1))
