@@ -3,7 +3,7 @@
 import numpy as np
 
 from src.modules.controller import full_state_feedback, get_control_input
-from src.modules.simulator import mass_spring_damper_model
+from src.modules.simulators import mass_spring_damper_model
 
 
 def test_get_control_input() -> None:

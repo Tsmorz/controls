@@ -4,7 +4,7 @@ import numpy as np
 
 from config.definitions import DEFAULT_VARIANCE, MEASUREMENT_NOISE, PROCESS_NOISE
 from src.modules.kalman import KalmanFilter
-from src.modules.simulator import mass_spring_damper_model
+from src.modules.simulators import mass_spring_damper_model
 from tests.conftest import TEST_DECIMALS_ACCURACY, TEST_DT
 
 

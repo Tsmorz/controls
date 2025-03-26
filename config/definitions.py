@@ -8,12 +8,12 @@ LEGEND_LOC = "upper right"
 DEFAULT_NUM_STEPS = 100
 PLOT_ALPHA = 0.8
 PLOT_MARKER_SIZE = 3
-PAUSE_TIME = 0.05
+PAUSE_TIME = 0.1
 
 # Kalman filter definitions
 DEFAULT_VARIANCE = 1e-2
 PROCESS_NOISE = 1e-5
-MEASUREMENT_NOISE = 1e-3
+MEASUREMENT_NOISE = 2e-2
 DEFAULT_CONTROL = np.array([[0.0], [0.0]])
 
 # process noise
@@ -26,7 +26,7 @@ SIGMA_YAW = 1e-2
 
 # control noise
 SIGMA_VEL = 1e-1
-SIGMA_OMEGA = 5e-2
+SIGMA_OMEGA = 1e-1
 
 # State space definitions
 DEFAULT_DT = 1.0
@@ -52,3 +52,6 @@ EULER_ORDER = "XYZ"
 
 # gravity
 GRAVITY_ACCEL = 9.81
+
+# time stamp size
+DELTA_T = 1.0

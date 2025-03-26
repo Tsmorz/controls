@@ -6,6 +6,7 @@ from typing import Any, Optional
 
 import numpy as np
 
+from config.definitions import DELTA_T
 from src.data_classes.lie_algebra import state_to_se3
 from src.data_classes.map import Feature
 
@@ -176,16 +177,17 @@ class Dynamics:
         :param state_control: the state and control vectors
         :return: the state vector after applying the motion equations
         """
+        dt = DELTA_T
         vel, omega = state_control[-2:]
         pose = state_to_se3(state_control[:6, 0])
 
         state_vec = np.zeros((6, 1))
-        state_vec[0, 0] = vel[0] * np.cos(pose.yaw) * np.cos(pose.pitch) + pose.x
-        state_vec[1, 0] = vel[0] * np.sin(pose.yaw) * np.cos(pose.pitch) + pose.y
-        state_vec[2, 0] = vel[0] * np.sin(pose.pitch) + pose.z
+        state_vec[0, 0] = dt * vel[0] * np.cos(pose.yaw) * np.cos(pose.pitch) + pose.x
+        state_vec[1, 0] = dt * vel[0] * np.sin(pose.yaw) * np.cos(pose.pitch) + pose.y
+        state_vec[2, 0] = dt * vel[0] * np.sin(pose.pitch) + pose.z
         state_vec[3, 0] = pose.roll
         state_vec[4, 0] = pose.pitch
-        state_vec[5, 0] = pose.yaw + omega[0]
+        state_vec[5, 0] = pose.yaw + dt * omega[0]
         self.state_vec = state_vec
 
     def as_vector(self) -> np.ndarray:

@@ -109,3 +109,11 @@ class LQRController:
         if t >= self.num_steps:
             return self.K[-1]  # Use the last computed gain after horizon
         return self.K[t]
+
+
+def get_angular_velocities_for_box(steps: int, radius_steps: int) -> list[float]:
+    """Create the angular velocity control inputs for a box."""
+    side_length = int(steps / 4)
+    one_side = side_length * [0] + radius_steps * [np.pi / 2 / radius_steps]
+    turning_rates = one_side + one_side + one_side + one_side
+    return turning_rates

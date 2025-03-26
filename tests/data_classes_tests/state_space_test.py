@@ -7,7 +7,7 @@ from config.definitions import DEFAULT_DT
 from src.data_classes.lie_algebra import SE3
 from src.data_classes.sensors import Dynamics
 from src.data_classes.state_history import StateHistory
-from src.modules.simulator import mass_spring_damper_model
+from src.modules.simulators import mass_spring_damper_model
 from src.modules.state_space import StateSpaceLinear, StateSpaceNonlinear
 from tests.conftest import TEST_DECIMALS_ACCURACY
 
