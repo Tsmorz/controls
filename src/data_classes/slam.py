@@ -32,11 +32,10 @@ class PoseMap:
         self.pose = SE3(xyz=xyz, roll_pitch_yaw=rpy)
 
         # update the map features
-        num_features = len(ekf_state) - 6
         features_x = ekf_state[6::2, 0]
         features_y = ekf_state[7::2, 0]
         features = [
-            Feature(x=float(features_x[idx]), y=float(features_y[idx]), id=idx)
-            for idx in range(num_features)
+            Feature(x=float(x), y=float(y), id=idx)
+            for idx, (x, y) in enumerate(zip(features_x, features_y))
         ]
         self.map = Map(features=features)

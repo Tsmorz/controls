@@ -50,12 +50,11 @@ class Distance(SensorBase):
         dy = np.array([feature.y for feature in features]) - pose.y
         dz = np.array([feature.z for feature in features]) - pose.z
         distance = np.sqrt(dx**2 + dy**2 + dz**2)
-
         if noise is not None:
             measurement_noise = np.random.normal(
                 loc=0.0,
                 scale=noise,
-                size=dx.shape,
+                size=distance.shape,
             )
             distance = distance + measurement_noise
 
@@ -126,7 +125,7 @@ class Elevation(SensorBase):
                 scale=noise / (1 + distance),
                 size=dx.shape,
             )
-            elevation = elevation + 0.0 * measurement_noise
+            elevation = elevation + measurement_noise
         self.elevation: np.ndarray = elevation
         self.type = SensorType.ELEVATION
 
@@ -192,18 +191,3 @@ class Dynamics:
     def as_vector(self) -> np.ndarray:
         """Represent the data as a 1-by-n matrix."""
         return self.state_vec
-
-
-def get_measurement(
-    state: np.ndarray,
-    features: list[Any],
-    sensor: type[DistanceAzimuthElevation | Distance | Azimuth | Elevation],
-) -> DistanceAzimuthElevation | Distance | Azimuth | Elevation:
-    """Get a sample measurement for the given sensor.
-
-    :param state: the current state of the system
-    :param features: list of features in the map
-    :param sensor: the sensor to be used for measurement
-    :return: a sensor measurement
-    """
-    return sensor(state=state, features=features)

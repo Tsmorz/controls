@@ -12,19 +12,21 @@ PAUSE_TIME = 0.05
 
 # Kalman filter definitions
 DEFAULT_VARIANCE = 1e-2
-PROCESS_NOISE = 5e-2
-MEASUREMENT_NOISE = 1e-1
+PROCESS_NOISE = 1e-5
+MEASUREMENT_NOISE = 1e-3
 DEFAULT_CONTROL = np.array([[0.0], [0.0]])
 
+# process noise
 SIGMA_X = 0.01
 SIGMA_Y = 0.01
-SIGMA_Z = 0.01
-SIGMA_ROLL = 0.01
-SIGMA_PITCH = 0.01
-SIGMA_YAW = 0.01
+SIGMA_Z = 1e-5
+SIGMA_ROLL = 0.0
+SIGMA_PITCH = 1e-5
+SIGMA_YAW = 1e-2
 
-SIGMA_VEL = 0.01
-SIGMA_OMEGA = 0.01
+# control noise
+SIGMA_VEL = 1e-1
+SIGMA_OMEGA = 5e-2
 
 # State space definitions
 DEFAULT_DT = 1.0

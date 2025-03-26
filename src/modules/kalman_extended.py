@@ -18,7 +18,7 @@ class ExtendedKalmanFilter:
         state_space_nonlinear: StateSpaceNonlinear,
         initial_x: np.ndarray,
         initial_covariance: np.ndarray,
-        process_noise: float,
+        process_noise: np.ndarray,
         measurement_noise: float,
     ) -> None:
         """Initialize the Extended Kalman Filter.
@@ -30,10 +30,10 @@ class ExtendedKalmanFilter:
         :return: None
         """
         self.state_space_nonlinear = state_space_nonlinear
-        self.Q: np.ndarray = process_noise * np.eye(len(initial_x))
-        self.measurement_noise = measurement_noise
         self.x: np.ndarray = initial_x
         self.cov: np.ndarray = initial_covariance
+        self.Q: np.ndarray = process_noise
+        self.measurement_noise = measurement_noise
 
     def predict(self, u: np.ndarray = DEFAULT_CONTROL) -> None:
         """Predict the next state and error covariance.
@@ -43,10 +43,10 @@ class ExtendedKalmanFilter:
         A, B = self.state_space_nonlinear.linearize(
             model=self.state_space_nonlinear.motion_model, x=self.x, u=u
         )
-        state_space = StateSpaceLinear(A, B)
+        ss = StateSpaceLinear(A, B)
 
         self.x = self.state_space_nonlinear.step(x=self.x, u=u)
-        self.cov = state_space.A @ self.cov @ state_space.A.T + self.Q
+        self.cov = ss.A @ self.cov @ ss.A.T + ss.B @ self.Q @ ss.B.T
         self.cov = symmetrize_matrix(self.cov)
 
     def update(
