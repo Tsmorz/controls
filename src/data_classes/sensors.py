@@ -1,16 +1,36 @@
 """Add a doc string to my files."""
 
 from enum import Enum, auto
-from typing import Optional
+from typing import Callable, Optional
 
 import numpy as np
+from loguru import logger
 
 from config.definitions import DELTA_T
 from src.data_classes.lie_algebra import state_to_se3
 from src.data_classes.map import Feature, distance_to_features
 
 
-def get_azimuth(
+def measure_gps(
+    state: np.ndarray,
+    features: list[Feature],
+    noise: Optional[np.ndarray | float] = None,
+) -> np.ndarray:
+    """Calculate the gps position from a given pose.
+
+    :param state: the current state vector
+    :param noise: optional noise vector for measurement
+    :return: the gps position
+    """
+    pose = state_to_se3(state)
+    xyz = np.array([[pose.x], [pose.y], [pose.z]])
+    if noise is not None:
+        measurement_noise = np.random.normal(loc=0.0, scale=noise, size=xyz.shape)
+        xyz = xyz + measurement_noise
+    return xyz
+
+
+def measure_azimuth(
     state: np.ndarray,
     features: list[Feature],
     noise: Optional[np.ndarray | float] = None,
@@ -35,7 +55,7 @@ def get_azimuth(
     return azimuth.reshape((len(azimuth), 1))
 
 
-def get_elevation(
+def measure_elevation(
     state: np.ndarray,
     features: list[Feature],
     noise: Optional[np.ndarray | float] = None,
@@ -60,7 +80,7 @@ def get_elevation(
     return elevation.reshape((len(elevation), 1))
 
 
-def get_distance(
+def measure_distance(
     state: np.ndarray,
     features: list[Feature],
     noise: Optional[np.ndarray | float] = None,
@@ -82,7 +102,7 @@ def get_distance(
     return distance.reshape((len(distance), 1))
 
 
-def get_distance_azimuth_elevation(
+def measure_distance_azimuth_elevation(
     state: np.ndarray,
     features: list[Feature],
     noise: Optional[np.ndarray | float] = None,
@@ -94,9 +114,9 @@ def get_distance_azimuth_elevation(
     :param noise: optional noise vector for measurement
     :return: the azimuth angles
     """
-    distance = get_distance(state=state, features=features, noise=noise)
-    azimuth = get_azimuth(state=state, features=features, noise=noise)
-    elevation = get_elevation(state=state, features=features, noise=noise)
+    distance = measure_distance(state=state, features=features, noise=noise)
+    azimuth = measure_azimuth(state=state, features=features, noise=noise)
+    elevation = measure_elevation(state=state, features=features, noise=noise)
 
     merged = np.array((distance, azimuth, elevation)).T.ravel()
     return np.reshape(merged, (len(merged), 1))
@@ -123,12 +143,18 @@ def step_dynamics(state_control: np.ndarray, dt: float = DELTA_T) -> np.ndarray:
     return state_vec
 
 
-class SensorType(Enum):
+class Sensor(Enum):
     """Define the individual sensor types."""
 
-    GPS = auto()
-    IMU = auto()
-    DISTANCE = get_distance
-    ELEVATION = get_elevation
-    AZIMUTH = get_azimuth
-    DISTANCE_AZIMUTH_ELEVATION = get_distance_azimuth_elevation
+    def __init__(self, code: int, func: Callable):
+        if func is None:
+            logger.error("Not implemented.")
+        self.code = code
+        self.func = func
+
+    GPS = auto(), measure_gps
+    IMU = auto(), measure_distance
+    DIST = auto(), measure_distance
+    ELE = auto(), measure_elevation
+    AZI = auto(), measure_azimuth
+    DIST_AZI_ELE = auto(), measure_distance_azimuth_elevation

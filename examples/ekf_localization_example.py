@@ -11,7 +11,7 @@ from config.definitions import (
 )
 from src.data_classes.lie_algebra import SE3, state_to_se3
 from src.data_classes.map import make_random_map_planar
-from src.data_classes.sensors import get_distance_azimuth_elevation, step_dynamics
+from src.data_classes.sensors import Sensor, step_dynamics
 from src.data_classes.slam import PoseMap
 from src.modules.kalman_extended import ExtendedKalmanFilter
 from src.modules.simulators import SlamSimulator
@@ -57,13 +57,12 @@ def pipeline(show_plot: bool) -> None:
             ekf.x[5, 0] = sim.pose.yaw + np.random.normal(0, 0.1)
 
         if whole % 15 == 0 and time > 0.0:
-            meas = get_distance_azimuth_elevation(
-                state=sim.pose.as_vector(),
-                features=sim.map.features,
+            meas = Sensor.DIST_AZI_ELE.func(
+                state=sim.pose.as_vector(), features=sim.map.features
             )
             ekf.update(
                 z=meas,
-                sensor=get_distance_azimuth_elevation,
+                sensor=Sensor.DIST_AZI_ELE.func,
                 u=control_input,
                 measurement_args=sim.map.features,
             )
