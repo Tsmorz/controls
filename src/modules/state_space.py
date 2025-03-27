@@ -8,10 +8,6 @@ from loguru import logger
 from scipy.signal import cont2discrete
 
 from config.definitions import EPSILON
-from src.data_classes.sensors import (
-    Dynamics,
-    SensorBase,
-)
 from src.data_classes.state_history import StateHistory, plot_history
 
 
@@ -145,7 +141,7 @@ class StateSpaceLinear:
 class StateSpaceNonlinear:
     """A class for representing a nonlinear state-space model."""
 
-    def __init__(self, motion_model: type[Dynamics]):
+    def __init__(self, motion_model: Callable):
         """Initialize a nonlinear state space model."""
         self.motion_model = motion_model
 
@@ -170,7 +166,7 @@ class StateSpaceNonlinear:
             output = model(xu)
         else:
             output = model(xu, other_args)
-        output_dim = output.as_vector().shape[0]
+        output_dim = output.shape[0]
 
         # linearize the motion model around the current state
         jacobian = np.zeros((output_dim, len(xu)))
@@ -203,11 +199,11 @@ class StateSpaceNonlinear:
         x_copy1[x_idx, 0] = x_copy1[x_idx, 0] - EPSILON
         x_copy2[x_idx, 0] = x_copy2[x_idx, 0] + EPSILON
         if other_args is None:
-            f2 = fun(x_copy2).as_vector()
-            f1 = fun(x_copy1).as_vector()
+            f2 = fun(x_copy2)
+            f1 = fun(x_copy1)
         else:
-            f2 = fun(x_copy2, other_args).as_vector()
-            f1 = fun(x_copy1, other_args).as_vector()
+            f2 = fun(x_copy2, other_args)
+            f1 = fun(x_copy1, other_args)
         return (f2 - f1) / (2 * EPSILON)
 
     def step(self, x: np.ndarray, u: np.ndarray) -> np.ndarray:
@@ -218,21 +214,4 @@ class StateSpaceNonlinear:
         :return: Next state
         """
         xu = np.vstack((x, u))
-        return self.motion_model(xu).as_vector()
-
-    @staticmethod
-    def predict_z(
-        state: np.ndarray,
-        measurement: SensorBase,
-        measurement_args: Optional[list[Any]] = None,
-    ) -> SensorBase:
-        """Step the state-space model by one step.
-
-        :param state: Current state
-        :param measurement: type of measurement used
-        :param measurement_args: Additional arguments (e.g., map of features)
-        :return: Next state
-        """
-        if measurement_args is None:
-            return type(measurement)(state)
-        return type(measurement)(state, measurement_args)
+        return self.motion_model(xu)

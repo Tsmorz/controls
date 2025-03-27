@@ -5,7 +5,7 @@ import pytest
 
 from config.definitions import DEFAULT_DT
 from src.data_classes.lie_algebra import SE3
-from src.data_classes.sensors import Dynamics
+from src.data_classes.sensors import step_dynamics
 from src.data_classes.state_history import StateHistory
 from src.modules.simulators import mass_spring_damper_model
 from src.modules.state_space import StateSpaceLinear, StateSpaceNonlinear
@@ -168,7 +168,7 @@ def test_impulse_response() -> None:
 def test_state_space_nonlinear_robot_model(vel: float, theta: float) -> None:
     """Test the initialization of the Kalman filter."""
     # Arrange
-    robot = StateSpaceNonlinear(motion_model=Dynamics)
+    robot = StateSpaceNonlinear(motion_model=step_dynamics)
     pose = SE3(xyz=np.zeros((3, 1)), roll_pitch_yaw=np.array([[0.0], [0.0], [theta]]))
     x = pose.as_vector()
     u = np.array([[vel], [0.0]])

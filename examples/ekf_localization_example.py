@@ -11,7 +11,7 @@ from config.definitions import (
 )
 from src.data_classes.lie_algebra import SE3, state_to_se3
 from src.data_classes.map import make_random_map_planar
-from src.data_classes.sensors import DistanceAzimuthElevation, Dynamics
+from src.data_classes.sensors import get_distance_azimuth_elevation, step_dynamics
 from src.data_classes.slam import PoseMap
 from src.modules.kalman_extended import ExtendedKalmanFilter
 from src.modules.simulators import SlamSimulator
@@ -24,12 +24,12 @@ def pipeline(show_plot: bool) -> None:
     robot_pose = SE3(xyz=np.zeros((3,)), roll_pitch_yaw=np.zeros((3,)))
     robot_pose.x = 20
     pose_map = PoseMap(pose=robot_pose)
-    meas = None
+    meas = np.array([])
     update_features = False
 
     process_noise = np.array([[SIGMA_VEL, 0], [0, SIGMA_OMEGA]])
     ekf = ExtendedKalmanFilter(
-        state_space_nonlinear=StateSpaceNonlinear(motion_model=Dynamics),
+        state_space_nonlinear=StateSpaceNonlinear(motion_model=step_dynamics),
         initial_x=pose_map.pose.as_vector(),
         initial_covariance=0.1 * np.eye(robot_pose.as_vector().shape[0]),
         process_noise=process_noise,
@@ -40,7 +40,7 @@ def pipeline(show_plot: bool) -> None:
         state_space_nl=ekf.state_space_nonlinear,
         process_noise=ekf.Q,
         initial_pose=pose_map.pose,
-        sim_map=make_random_map_planar(num_features=10, dim=(40, 40)),
+        sim_map=make_random_map_planar(num_features=2, dim=(40, 40)),
     )
 
     i = 0
@@ -52,12 +52,17 @@ def pipeline(show_plot: bool) -> None:
 
         frac, whole = np.modf(time)
         if whole % 15 == 0 and time > 0.0:
-            meas = DistanceAzimuthElevation(
+            meas = get_distance_azimuth_elevation(
                 state=sim.pose.as_vector(),
                 features=sim.map.features,
                 noise=MEASUREMENT_NOISE,
             )
-            ekf.update(z=meas, u=control_input, measurement_args=sim.map.features)
+            ekf.update(
+                z=meas,
+                sensor=get_distance_azimuth_elevation,
+                u=control_input,
+                measurement_args=sim.map.features,
+            )
         else:
             # TODO - update the heading with the magnetometer
             ekf.x[5, 0] = sim.pose.yaw + np.random.normal(0, 0.2)

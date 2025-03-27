@@ -1,11 +1,10 @@
 """Basic docstring for my module."""
 
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 import numpy as np
 
 from config.definitions import DEFAULT_CONTROL
-from src.data_classes.sensors import SensorBase
 from src.modules.math_utils import symmetrize_matrix
 from src.modules.state_space import StateSpaceLinear, StateSpaceNonlinear
 
@@ -51,13 +50,15 @@ class ExtendedKalmanFilter:
 
     def update(
         self,
-        z: SensorBase,
+        z: np.ndarray,
+        sensor: Callable,
         u: np.ndarray,
         measurement_args: Optional[list[Any]] = None,
     ) -> None:
         """Update the state estimate with measurement z.
 
         :param z: Measurement
+        :param sensor: Measurement function
         :param u: Control input
         :param measurement_args: Additional arguments (e.g., map of features)
         :return: Updated state estimate and state covariance
@@ -68,22 +69,22 @@ class ExtendedKalmanFilter:
             u=u,
         )
         C, D = self.state_space_nonlinear.linearize(
-            model=type(z),
+            model=sensor,
             x=self.x,
             u=u,
             other_args=measurement_args,
         )
         state_space = StateSpaceLinear(A, B, C, D)
 
-        predict_z = self.state_space_nonlinear.predict_z(
-            state=self.x,
-            measurement=z,
-            measurement_args=measurement_args,
+        predict_z = (
+            sensor(self.x)
+            if measurement_args is None
+            else sensor(self.x, measurement_args)
         )
-        y = z.as_vector() - predict_z.as_vector()
-        R = self.measurement_noise * np.eye(len(z.as_vector()))
+
+        R = self.measurement_noise * np.eye(len(z))
         S = state_space.C @ self.cov @ state_space.C.T + R
         K = self.cov @ state_space.C.T @ np.linalg.inv(S)
-        self.x = self.x + K @ y
+        self.x = self.x + K @ (z - predict_z)
         cov = (np.eye(self.cov.shape[0]) - K @ state_space.C) @ self.cov
         self.cov = symmetrize_matrix(cov)

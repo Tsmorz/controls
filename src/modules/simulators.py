@@ -1,7 +1,5 @@
 """Basic docstring for my module."""
 
-from typing import Optional
-
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Ellipse
@@ -14,7 +12,6 @@ from config.definitions import (
     PLOT_ALPHA,
 )
 from src.data_classes.lie_algebra import SE3
-from src.data_classes.sensors import DistanceAzimuthElevation
 from src.data_classes.slam import Map
 from src.modules.controller import get_angular_velocities_for_box
 from src.modules.state_space import StateSpaceLinear, StateSpaceNonlinear
@@ -65,9 +62,9 @@ class SlamSimulator:
         self.pose: SE3 = initial_pose
         self.history: list[tuple[SE3, SE3]] = []
         self.map: Map = sim_map
-        self.last_measurement: Optional[DistanceAzimuthElevation] = None
+        self.last_measurement: np.ndarray = np.array([])
         self.time_stamps: np.ndarray = np.arange(
-            start=0.0, stop=1000 / DELTA_T, step=DELTA_T
+            start=0.0, stop=200 / DELTA_T, step=DELTA_T
         )
         self.controls = get_angular_velocities_for_box(
             steps=len(self.time_stamps), radius_steps=8
@@ -98,7 +95,7 @@ class SlamSimulator:
     def append_result(
         self,
         estimate: tuple[SE3, np.ndarray],
-        measurement: Optional[DistanceAzimuthElevation] = None,
+        measurement: np.ndarray,
         show_plot: bool = True,
     ) -> None:
         """Update the state estimate based on an estimated pose."""
@@ -138,16 +135,19 @@ class SlamSimulator:
 
     def plot_measurement(
         self,
-        measurement: Optional[DistanceAzimuthElevation],
+        measurement: np.ndarray,
         pose: SE3,
-    ):
+    ) -> list[plt.Line2D]:
         """Plot the simulation results."""
         # TODO: make the plot work for 3D features with azimuth and elevation
         rays: list[plt.Line2D] = []
-        if self.last_measurement != measurement and measurement is not None:
+        if not np.array_equal(self.last_measurement, measurement):
             fig, ax = self.sim_plot
             rays = []
-            dae = zip(measurement.distance, measurement.azimuth, measurement.elevation)
+            distance = measurement[0::3, 0]
+            azimuth = measurement[1::3, 0]
+            elevation = measurement[2::3, 0]
+            dae = zip(distance, azimuth, elevation)
             for dist, azi, _ in dae:
                 x1, x2 = pose.x, pose.x + dist * np.cos(pose.yaw + azi)
                 y1, y2 = pose.y, pose.y + dist * np.sin(pose.yaw + azi)
