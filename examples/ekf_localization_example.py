@@ -40,7 +40,7 @@ def pipeline(show_plot: bool) -> None:
         state_space_nl=ekf.state_space_nonlinear,
         process_noise=ekf.Q,
         initial_pose=pose_map.pose,
-        sim_map=make_random_map_planar(num_features=5, dim=(40, 40)),
+        sim_map=make_random_map_planar(num_features=10, dim=(40, 40)),
     )
 
     i = 0

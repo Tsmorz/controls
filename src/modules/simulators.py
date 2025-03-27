@@ -127,14 +127,14 @@ class SlamSimulator:
 
     def plot_covariance(self, pose: SE3, covariance: np.ndarray) -> Patch:
         """Add a drawing of the robot covariance to the plot."""
-        x_cov, y_cov = np.linalg.eigvals(covariance[:2, :2])
-        x_cov, y_cov = np.clip(x_cov, -10, 10), np.clip(y_cov, -10, 10)
-        ang_cov = np.rad2deg(np.arctan2(y_cov, x_cov))
+        xy_cov = np.linalg.eigvals(covariance[:2, :2])
+        xy_cov = np.clip(xy_cov, a_min=-20, a_max=20)
+
         ellipse = Ellipse(
             xy=(float(pose.x), float(pose.y)),
-            width=x_cov,
-            height=y_cov,
-            angle=ang_cov,
+            width=float(xy_cov[0]),
+            height=float(xy_cov[1]),
+            angle=np.rad2deg(np.arctan2(xy_cov[1], xy_cov[0])),
             fc="None",
             edgecolor="k",
             alpha=PLOT_ALPHA,
