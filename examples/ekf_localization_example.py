@@ -40,7 +40,7 @@ def pipeline(show_plot: bool) -> None:
         state_space_nl=ekf.state_space_nonlinear,
         process_noise=ekf.Q,
         initial_pose=pose_map.pose,
-        sim_map=make_random_map_planar(num_features=2, dim=(40, 40)),
+        sim_map=make_random_map_planar(num_features=5, dim=(40, 40)),
     )
 
     i = 0
@@ -50,12 +50,16 @@ def pipeline(show_plot: bool) -> None:
         ekf.predict(u=control_input)
         pose_map.pose = SE3(xyz=ekf.x[0:3, 0], roll_pitch_yaw=ekf.x[3:6, 0])
 
+        # update the state estimate with the measurements
         frac, whole = np.modf(time)
+        if whole % 3 == 0 and time > 0.0:
+            # TODO - update the heading with the magnetometer
+            ekf.x[5, 0] = sim.pose.yaw + np.random.normal(0, 0.1)
+
         if whole % 15 == 0 and time > 0.0:
             meas = get_distance_azimuth_elevation(
                 state=sim.pose.as_vector(),
                 features=sim.map.features,
-                noise=MEASUREMENT_NOISE,
             )
             ekf.update(
                 z=meas,
@@ -63,9 +67,6 @@ def pipeline(show_plot: bool) -> None:
                 u=control_input,
                 measurement_args=sim.map.features,
             )
-        else:
-            # TODO - update the heading with the magnetometer
-            ekf.x[5, 0] = sim.pose.yaw + np.random.normal(0, 0.2)
 
         # save new features to the map
         if update_features:

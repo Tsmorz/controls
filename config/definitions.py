@@ -42,7 +42,7 @@ EPSILON = 1e-3
 # Map definitions
 MAP_NUM_FEATURES = 10
 MAP_DIM = (10, 10)
-VECTOR_LENGTH = 0.2
+VECTOR_LENGTH = 0.5
 
 # Unit definitions
 DEFAULT_UNITS = "m"

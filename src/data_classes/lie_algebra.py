@@ -4,6 +4,7 @@ from typing import Optional
 
 import numpy as np
 from loguru import logger
+from matplotlib.patches import FancyArrow
 from scipy.spatial.transform import Rotation as Rot
 
 from config.definitions import EULER_ORDER, PLOT_ALPHA, VECTOR_LENGTH
@@ -74,12 +75,13 @@ class SE3:
         matrix = np.vstack((matrix, np.array([[0.0, 0.0, 0.0, 1.0]])))
         return matrix
 
-    def plot_se3(self, plot, color: str) -> None:
+    def plot_se3(self, plot, color: str, alpha: float = PLOT_ALPHA) -> FancyArrow:
         """Add a drawing of the robot pose to the plot."""
         fig, ax = plot
-        ax.plot([self.x, self.x], [self.y, self.y], "k-", alpha=PLOT_ALPHA)
         dx, dy = VECTOR_LENGTH * np.cos(self.yaw), VECTOR_LENGTH * np.sin(self.yaw)
-        ax.arrow(x=self.x, y=self.y, dx=dx, dy=dy, width=0.01, color=color)
+        return ax.arrow(
+            x=self.x, y=self.y, dx=dx, dy=dy, width=0.1, color=color, alpha=alpha
+        )
 
 
 def state_to_se3(state: np.ndarray) -> SE3:

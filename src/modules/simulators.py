@@ -2,7 +2,7 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.patches import Ellipse
+from matplotlib.patches import Ellipse, Patch
 from matplotlib.pyplot import Axes, Figure
 
 from config.definitions import (
@@ -64,7 +64,7 @@ class SlamSimulator:
         self.map: Map = sim_map
         self.last_measurement: np.ndarray = np.array([])
         self.time_stamps: np.ndarray = np.arange(
-            start=0.0, stop=200 / DELTA_T, step=DELTA_T
+            start=0.0, stop=20000 / DELTA_T, step=DELTA_T
         )
         self.controls = get_angular_velocities_for_box(
             steps=len(self.time_stamps), radius_steps=8
@@ -102,21 +102,30 @@ class SlamSimulator:
         pose, cov = estimate
         self.history.append((pose, self.pose))
 
+        old_poses = []
+        for old_pose, _ in self.history[-20:]:
+            old_poses.append(old_pose)
+        plot_items: list[plt.Line2D | Patch] = []
         if show_plot:
-            self.pose.plot_se3(plot=self.sim_plot, color="red")
-            pose.plot_se3(plot=self.sim_plot, color="blue")
-            cov_plot = self.plot_covariance(pose=pose, covariance=cov)
-            rays = self.plot_measurement(pose=pose, measurement=measurement)
+            plot_items.append(self.pose.plot_se3(plot=self.sim_plot, color="red"))
+
+            for ii, old_pose in enumerate(old_poses):
+                plot_items.append(
+                    old_pose.plot_se3(
+                        plot=self.sim_plot, color="blue", alpha=ii / len(old_poses)
+                    )
+                )
+            plot_items.append(self.plot_covariance(pose=pose, covariance=cov))
+            plot_items.extend(self.plot_measurement(pose=pose, measurement=measurement))
             self.last_measurement = measurement
             plt.axis("equal")
             plt.pause(PAUSE_TIME)
 
             # remove the sensor measurements
-            cov_plot.remove()
-            for ray in rays:
-                ray.remove()
+            for item in plot_items:
+                item.remove()
 
-    def plot_covariance(self, pose: SE3, covariance: np.ndarray):
+    def plot_covariance(self, pose: SE3, covariance: np.ndarray) -> Patch:
         """Add a drawing of the robot covariance to the plot."""
         x_cov, y_cov = np.linalg.eigvals(covariance[:2, :2])
         x_cov, y_cov = np.clip(x_cov, -10, 10), np.clip(y_cov, -10, 10)
@@ -130,8 +139,7 @@ class SlamSimulator:
             edgecolor="k",
             alpha=PLOT_ALPHA,
         )
-        cov_ellipse = self.sim_plot[1].add_patch(ellipse)
-        return cov_ellipse
+        return self.sim_plot[1].add_patch(ellipse)
 
     def plot_measurement(
         self,
