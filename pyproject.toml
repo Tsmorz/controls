@@ -1,10 +1,10 @@
 [tool.poetry]
-name = "controls"
-version = "0.1.0"
-description = ""
+name = "tsmorz123"
+version = "0.1.1"
+description = "An extended Kalman filter for SLAM and localization."
 authors = ["Tsmorz <tonysmoragiewicz@gmail.com>"]
 readme = "README.md"
-package-mode = false
+package-mode = true
 
 [tool.poetry.dependencies]
 python = "^3.12"
