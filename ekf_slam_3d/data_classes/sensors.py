@@ -7,8 +7,8 @@ import numpy as np
 from loguru import logger
 
 from config.definitions import DELTA_T
-from ekf_slam.data_classes.lie_algebra import state_to_se3
-from ekf_slam.data_classes.map import Feature, distance_to_features
+from ekf_slam_3d.data_classes.lie_algebra import state_to_se3
+from ekf_slam_3d.data_classes.map import Feature, distance_to_features
 
 
 def measure_gps(

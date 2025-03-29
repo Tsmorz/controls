@@ -5,8 +5,8 @@ from typing import Optional
 import numpy as np
 
 from config.definitions import MEASUREMENT_NOISE, PROCESS_NOISE
-from ekf_slam.modules.math_utils import symmetrize_matrix
-from ekf_slam.modules.state_space import StateSpaceLinear
+from ekf_slam_3d.modules.math_utils import symmetrize_matrix
+from ekf_slam_3d.modules.state_space import StateSpaceLinear
 
 
 class KalmanFilter:

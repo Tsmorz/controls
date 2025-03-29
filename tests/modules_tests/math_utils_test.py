@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from ekf_slam.modules.math_utils import matrix_exponential
+from ekf_slam_3d.modules.math_utils import matrix_exponential
 
 
 @pytest.mark.parametrize("t", [1.0, 0.1, 0.01])

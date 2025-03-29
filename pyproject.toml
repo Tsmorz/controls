@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "ekf_slam"
+name = "ekf_slam_3d"
 version = "0.1.0"
 description = "An extended Kalman filter for SLAM and localization."
 authors = ["Tsmorz <tonysmoragiewicz@gmail.com>"]

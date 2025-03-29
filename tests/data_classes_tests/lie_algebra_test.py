@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from ekf_slam.data_classes.lie_algebra import SE3
+from ekf_slam_3d.data_classes.lie_algebra import SE3
 
 
 @pytest.mark.parametrize(

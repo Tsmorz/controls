@@ -4,11 +4,11 @@ import numpy as np
 import pytest
 
 from config.definitions import DEFAULT_DT
-from ekf_slam.data_classes.lie_algebra import SE3
-from ekf_slam.data_classes.sensors import step_dynamics
-from ekf_slam.data_classes.state_history import StateHistory
-from ekf_slam.modules.simulators import mass_spring_damper_model
-from ekf_slam.modules.state_space import StateSpaceLinear, StateSpaceNonlinear
+from ekf_slam_3d.data_classes.lie_algebra import SE3
+from ekf_slam_3d.data_classes.sensors import step_dynamics
+from ekf_slam_3d.data_classes.state_history import StateHistory
+from ekf_slam_3d.modules.simulators import mass_spring_damper_model
+from ekf_slam_3d.modules.state_space import StateSpaceLinear, StateSpaceNonlinear
 from tests.conftest import TEST_DECIMALS_ACCURACY
 
 

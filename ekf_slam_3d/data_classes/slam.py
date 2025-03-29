@@ -4,8 +4,8 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from ekf_slam.data_classes.lie_algebra import SE3
-from ekf_slam.data_classes.map import Feature, Map
+from ekf_slam_3d.data_classes.lie_algebra import SE3
+from ekf_slam_3d.data_classes.map import Feature, Map
 
 
 @dataclass

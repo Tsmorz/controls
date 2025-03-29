@@ -8,7 +8,7 @@ from loguru import logger
 from scipy.signal import cont2discrete
 
 from config.definitions import EPSILON
-from ekf_slam.data_classes.state_history import StateHistory, plot_history
+from ekf_slam_3d.data_classes.state_history import StateHistory, plot_history
 
 
 class StateSpaceLinear:

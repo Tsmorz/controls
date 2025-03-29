@@ -11,10 +11,10 @@ from config.definitions import (
     PAUSE_TIME,
     PLOT_ALPHA,
 )
-from ekf_slam.data_classes.lie_algebra import SE3
-from ekf_slam.data_classes.slam import Map
-from ekf_slam.modules.controller import get_angular_velocities_for_box
-from ekf_slam.modules.state_space import StateSpaceLinear, StateSpaceNonlinear
+from ekf_slam_3d.data_classes.lie_algebra import SE3
+from ekf_slam_3d.data_classes.slam import Map
+from ekf_slam_3d.modules.controller import get_angular_velocities_for_box
+from ekf_slam_3d.modules.state_space import StateSpaceLinear, StateSpaceNonlinear
 
 
 def mass_spring_damper_model(

@@ -7,7 +7,7 @@ from loguru import logger
 from scipy.signal import place_poles
 
 from config.definitions import DEFAULT_NUM_STEPS
-from ekf_slam.modules.state_space import StateSpaceLinear
+from ekf_slam_3d.modules.state_space import StateSpaceLinear
 
 
 def full_state_feedback(state_space: StateSpaceLinear, desired_eigenvalues: np.ndarray):

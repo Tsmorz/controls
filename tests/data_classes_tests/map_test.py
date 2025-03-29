@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from ekf_slam.data_classes.map import (
+from ekf_slam_3d.data_classes.map import (
     Feature,
     Map,
     make_box_map_planar,

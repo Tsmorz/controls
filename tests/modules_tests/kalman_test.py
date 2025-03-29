@@ -3,8 +3,8 @@
 import numpy as np
 
 from config.definitions import DEFAULT_VARIANCE, MEASUREMENT_NOISE, PROCESS_NOISE
-from ekf_slam.modules.kalman import KalmanFilter
-from ekf_slam.modules.simulators import mass_spring_damper_model
+from ekf_slam_3d.modules.kalman import KalmanFilter
+from ekf_slam_3d.modules.simulators import mass_spring_damper_model
 from tests.conftest import TEST_DECIMALS_ACCURACY, TEST_DT
 
 
