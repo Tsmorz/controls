@@ -12,6 +12,9 @@ format:
 	ruff check --fix
 	poetry run mypy src/ tests/ config/ examples/ --ignore-missing-imports
 
+publish:
+    poetry publish --build
+
 clean:
 	rm -rf .venv
 	rm -rf .mypy_cache
