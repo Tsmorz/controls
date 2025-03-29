@@ -7,7 +7,7 @@ readme = "README.md"
 package-mode = true
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.13"
 numpy = "^2.2.3"
 scipy = "^1.15.2"
 pytest = "^8.3.5"
