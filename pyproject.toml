@@ -1,6 +1,6 @@
 [tool.poetry]
-name = "tsmorz123"
-version = "0.1.1"
+name = "ekf_slam"
+version = "0.1.0"
 description = "An extended Kalman filter for SLAM and localization."
 authors = ["Tsmorz <tonysmoragiewicz@gmail.com>"]
 readme = "README.md"
@@ -17,7 +17,6 @@ pre-commit = "^4.1.0"
 matplotlib = "^3.10.1"
 sympy = "^1.13.3"
 autograd = "^1.7.0"
-jax = "^0.5.3"
 
 
 [build-system]

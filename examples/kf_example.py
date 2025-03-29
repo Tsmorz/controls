@@ -4,10 +4,6 @@ from typing import Optional
 
 import numpy as np
 from loguru import logger
-
-from config.definitions import (
-    DEFAULT_DISCRETIZATION,
-)
 from src.data_classes.state_history import StateHistory, plot_history
 from src.modules.controller import full_state_feedback, get_control_input
 from src.modules.kalman import KalmanFilter
@@ -15,6 +11,10 @@ from src.modules.simulators import (
     mass_spring_damper_model,
 )
 from src.modules.state_space import StateSpaceLinear
+
+from config.definitions import (
+    DEFAULT_DISCRETIZATION,
+)
 
 
 class KalmanSimulator:

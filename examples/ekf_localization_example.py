@@ -9,13 +9,13 @@ from config.definitions import (
     SIGMA_OMEGA,
     SIGMA_VEL,
 )
-from src.data_classes.lie_algebra import SE3, state_to_se3
-from src.data_classes.map import make_random_map_planar
-from src.data_classes.sensors import Sensor, step_dynamics
-from src.data_classes.slam import PoseMap
-from src.modules.kalman_extended import ExtendedKalmanFilter
-from src.modules.simulators import SlamSimulator
-from src.modules.state_space import StateSpaceNonlinear
+from ekf_slam.data_classes.lie_algebra import SE3, state_to_se3
+from ekf_slam.data_classes.map import make_random_map_planar
+from ekf_slam.data_classes.sensors import Sensor, step_dynamics
+from ekf_slam.data_classes.slam import PoseMap
+from ekf_slam.modules.kalman_extended import ExtendedKalmanFilter
+from ekf_slam.modules.simulators import SlamSimulator
+from ekf_slam.modules.state_space import StateSpaceNonlinear
 
 
 def pipeline(show_plot: bool) -> None:

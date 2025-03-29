@@ -2,8 +2,8 @@
 
 import numpy as np
 
-from src.modules.controller import full_state_feedback, get_control_input
-from src.modules.simulators import mass_spring_damper_model
+from ekf_slam.modules.controller import full_state_feedback, get_control_input
+from ekf_slam.modules.simulators import mass_spring_damper_model
 
 
 def test_get_control_input() -> None:

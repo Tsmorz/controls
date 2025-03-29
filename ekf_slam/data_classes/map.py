@@ -7,7 +7,7 @@ import numpy as np
 from loguru import logger
 
 from config.definitions import MAP_DIM, MAP_NUM_FEATURES
-from src.data_classes.lie_algebra import SE3
+from ekf_slam.data_classes.lie_algebra import SE3
 
 
 @dataclass

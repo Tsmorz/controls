@@ -5,15 +5,12 @@ init:
 	poetry env info
 	@echo "Created virtual environment"
 test:
-	poetry run pytest --cov=src/ --cov-report=term-missing --no-cov-on-fail
+	poetry run pytest --cov=ekf_slam/ --cov-report=term-missing --no-cov-on-fail
 
 format:
 	ruff format
 	ruff check --fix
-	poetry run mypy src/ tests/ config/ examples/ --ignore-missing-imports
-
-publish:
-    poetry publish --build
+	poetry run mypy ekf_slam/ tests/ config/ examples/ --ignore-missing-imports
 
 clean:
 	rm -rf .venv

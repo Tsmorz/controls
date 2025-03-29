@@ -5,8 +5,8 @@ from typing import Any, Callable, Optional
 import numpy as np
 
 from config.definitions import DEFAULT_CONTROL
-from src.modules.math_utils import symmetrize_matrix
-from src.modules.state_space import StateSpaceLinear, StateSpaceNonlinear
+from ekf_slam.modules.math_utils import symmetrize_matrix
+from ekf_slam.modules.state_space import StateSpaceLinear, StateSpaceNonlinear
 
 
 class ExtendedKalmanFilter:

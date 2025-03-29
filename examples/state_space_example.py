@@ -1,7 +1,6 @@
 """Basic docstring for my module."""
 
 import numpy as np
-
 from src.modules.state_space import StateSpaceLinear
 
 
